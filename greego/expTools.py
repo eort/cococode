@@ -18,8 +18,7 @@ def captureResponse(mode='meg',key = 'm',timeout=1):
     """
     Depending on the machine the experiment is running on, it either captures response from
     parallel port (mode='meg'), randomly (mode='dummy') or by key press (keyboard)
-    """
-    
+    """    
     if mode=='meg':
         return os.system("/usr/local/bin/pin 0x379")
     elif mode=='dummy':
@@ -28,8 +27,7 @@ def captureResponse(mode='meg',key = 'm',timeout=1):
     elif mode=='keyboard':
         resp = event.waitKeys(keyList=[key], maxWait=timeout, timeStamped=False)
         if resp != None: return resp[0] 
-        else: return resp
-        
+        else: return resp   
 
 def fancyFixDot(window,bg_color,fg_color='white',size=30):
     """
@@ -42,37 +40,6 @@ def fancyFixDot(window,bg_color,fg_color='white',size=30):
     rect_vert = visual.Rect(win=window,units="pix",width=size/6,height=size,fillColor=bg_color,lineColor=bg_color)
     smallCircle = visual.Circle(win=window, size=size/6,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color)
     return [bigCircle,rect_horiz,rect_vert,smallCircle]
-
-
-def handleResponse(start_time,corr_resp,resp=None,sleep=None,allowed_resp=None):
-    """Function supposed to handle 2 scenarios:
-        1) process an already pressed key to format into response dict
-        2) poll for more responses if nothing has been pressed yet
-        returns a response dict with the key pressed, response time, and correctness
-    """
-
-    response = dict(resp_key=None,resp_time=None,correct=None,timeout=0)
-
-    if resp != None:
-        response['resp_key']=resp[0]
-        response['resp_time'] = resp[-1]-start_time
-    else:
-        keys = event.waitKeys(keyList=[allowed_resp[0],allowed_resp[1],allowed_resp[2]], maxWait=sleep, timeStamped=True)
-
-        if keys== None:
-            response['resp_key']=None
-            response['timeout']=1
-        elif allowed_resp[0] in keys[-1]:
-            response['resp_key'] = allowed_resp[0]
-        elif allowed_resp[1] in keys[-1]:
-            response['resp_key'] = allowed_resp[1]
-            response['resp_time'] = keys[-1][-1]-start_time
-        elif allowed_resp[2] in keys[-1]:
-            response['resp_key'] = allowed_resp[2]
-            response['resp_time'] = keys[-1][-1]-start_time
-    
-    response['correct'] = response['resp_key']==corr_resp
-    return response
 
 def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
     """gracefully finish experiment"""
@@ -91,15 +58,6 @@ def sendTriggers(trigger,mode=None):
         core.wait(0.01)
         os.system("/usr/local/bin/parashell 0x378 0")   
         core.wait(0.01)
-
-def repCheck(seq,cutoff=4):
-    """Checks whether too many repetitions of the same category in a binary sequence
-    Retuns 1 if so, 0 if not
-    """
-    for sI,s in enumerate(seq[cutoff-1:]):
-        if sum(seq[sI:cutoff+sI]) in [0,cutoff]:
-            return 1
-    return 0
 
 class Logger(object):
     """
@@ -141,7 +99,4 @@ class Logger(object):
                 print("Can't do sorting because one of the specified columns does not exist. Save file without sorting")
             else: 
                 self.data = self.data.reindex(columns=new_order)
-            
-        
-
         self.data.to_csv(self.outpath,na_rep=pd.np.nan)        
