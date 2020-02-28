@@ -1,0 +1,75 @@
+9.0424 	INFO 	Loaded monitor calibration from ['2019_12_03 18:24']
+9.0563 	WARNING 	Requested an unavailable screen number - using first available.
+9.9323 	EXP 	Created window1 = Window(allowGUI=True, allowStencil=False, args=UNKNOWN, autoLog=True, bitsMode=UNKNOWN, blendMode='avg', color=array([-0.9, -0.9, -0.9]), colorSpace='rgb', fullscr=<method-wrapper '__getattribute__' of attributeSetter object at 0x7fa39522dcc0>, gamma=None, kwargs=UNKNOWN, lms=UNKNOWN, monitor=<psychopy.monitors.calibTools.Monitor object at 0x7fa38be86c18>, multiSample=False, name='window1', numSamples=2, pos=[0.0, 0.0], screen=1, size=array([1280, 1024]), stereo=False, units='pix', useFBO=False, useRetina=False, viewOri=0.0, viewPos=None, viewScale=None, waitBlanking=True, winType='pyglet')
+9.9324 	INFO 	Mouse: using default window
+10.0522 	EXP 	Created unnamed TextStim = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz='center', alignVert='center', antialias=True, autoLog=True, bold=False, color=array([0.85, 0.85, 0.85]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, font='', fontFiles=[], height=20, italic=False, languageStyle='LTR', name='unnamed TextStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), rgb=array([0.85, 0.85, 0.85]), text=str(...), units='pix', win=Window(...), wrapWidth=1280)
+10.0768 	EXP 	Created unnamed TextStim = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz='center', alignVert='center', antialias=True, autoLog=True, bold=False, color=array([0.85, 0.85, 0.85]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, font='', fontFiles=[], height=20, italic=False, languageStyle='LTR', name='unnamed TextStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), rgb=array([0.85, 0.85, 0.85]), text=str(...), units='pix', win=Window(...), wrapWidth=1280)
+10.0924 	EXP 	Created unnamed TextStim = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz='center', alignVert='center', antialias=True, autoLog=True, bold=False, color=array([0.85, 0.85, 0.85]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, font='', fontFiles=[], height=20, italic=False, languageStyle='LTR', name='unnamed TextStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), rgb=array([0.85, 0.85, 0.85]), text=str(...), units='pix', win=Window(...), wrapWidth=1280)
+10.1854 	EXP 	Created unnamed ImageStim = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=-1.0, depth=0, flipHoriz=False, flipVert=False, image='smiley.png', interpolate=False, mask=None, maskParams=None, name='unnamed ImageStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), size=array([100, 100]), texRes=128, units='pix', win=Window(...))
+10.1877 	EXP 	Created unnamed ImageStim = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=-1.0, depth=0, flipHoriz=False, flipVert=False, image='frowny.png', interpolate=False, mask=None, maskParams=None, name='unnamed ImageStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), size=array([100, 100]), texRes=128, units='pix', win=Window(...))
+10.1903 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([0.85, 0.85, 0.85]), fillColorSpace='rgb', fillRGB=array([0.85, 0.85, 0.85]), interpolate=True, lineColor=array([0.85, 0.85, 0.85]), lineColorSpace='rgb', lineRGB=array([0.85, 0.85, 0.85]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([-500., -200.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+10.1922 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([0.85, 0.85, 0.85]), fillColorSpace='rgb', fillRGB=array([0.85, 0.85, 0.85]), interpolate=True, lineColor=array([0.85, 0.85, 0.85]), lineColorSpace='rgb', lineRGB=array([0.85, 0.85, 0.85]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([-500., -200.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+10.1940 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([0.85, 0.85, 0.85]), fillColorSpace='rgb', fillRGB=array([0.85, 0.85, 0.85]), interpolate=True, lineColor=array([0.85, 0.85, 0.85]), lineColorSpace='rgb', lineRGB=array([0.85, 0.85, 0.85]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([ 500., -200.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+10.1984 	EXP 	Created unnamed ImageStim = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, image='meg_set2/f3-310-v1.tif', interpolate=False, mask=None, maskParams=None, name='unnamed ImageStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), size=array([240., 270.]), texRes=128, units='pix', win=Window(...))
+10.2069 	EXP 	Created unnamed Circle = Circle(__class__=<class 'psychopy.visual.circle.Circle'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor='white', fillColorSpace='named', fillRGB=array([255., 255., 255.]), interpolate=True, lineColor='white', lineColorSpace='named', lineRGB=array([255., 255., 255.]), lineWidth=1.5, name='unnamed Circle', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([24., 24.]), units='pix', vertices=ndarray(...), win=Window(...))
+10.2088 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([-0.9, -0.9, -0.9]), fillColorSpace='rgb', fillRGB=array([-0.9, -0.9, -0.9]), interpolate=True, lineColor=array([-0.9, -0.9, -0.9]), lineColorSpace='rgb', lineRGB=array([-0.9, -0.9, -0.9]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+10.2105 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([-0.9, -0.9, -0.9]), fillColorSpace='rgb', fillRGB=array([-0.9, -0.9, -0.9]), interpolate=True, lineColor=array([-0.9, -0.9, -0.9]), lineColorSpace='rgb', lineRGB=array([-0.9, -0.9, -0.9]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+10.2134 	EXP 	Created unnamed Circle = Circle(__class__=<class 'psychopy.visual.circle.Circle'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor='white', fillColorSpace='named', fillRGB=array([255., 255., 255.]), interpolate=True, lineColor='white', lineColorSpace='named', lineRGB=array([255., 255., 255.]), lineWidth=1.5, name='unnamed Circle', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([4., 4.]), units='pix', vertices=ndarray(...), win=Window(...))
+11.1489 	DATA 	Keypress: space
+11.1978 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-310-v1.tif'
+14.4968 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-43-v1.tif'
+17.8957 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-58-v1.tif'
+21.0948 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-54-v1.tif'
+24.6937 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-45-v1.tif'
+28.3593 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-39-v1.tif'
+31.5583 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-34-v1.tif'
+35.2072 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-46-v1.tif'
+38.4896 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-32-v1.tif'
+41.8719 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-510-v1.tif'
+45.3708 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-44-v1.tif'
+48.7698 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-59-v1.tif'
+52.0688 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-59-v1.tif'
+55.6344 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-46-v1.tif'
+58.9001 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-310-v1.tif'
+62.0824 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-510-v1.tif'
+65.4648 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-32-v1.tif'
+68.7638 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-44-v1.tif'
+72.4293 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-54-v1.tif'
+75.6450 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-34-v1.tif'
+79.1940 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-58-v1.tif'
+82.6763 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-45-v1.tif'
+86.1585 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-39-v1.tif'
+89.6408 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-43-v1.tif'
+93.3897 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-45-v1.tif'
+96.6720 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-34-v1.tif'
+100.3043 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-59-v1.tif'
+103.7866 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-58-v1.tif'
+107.0356 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-510-v1.tif'
+110.2013 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-43-v1.tif'
+113.8669 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-39-v1.tif'
+117.0492 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-54-v1.tif'
+120.3482 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-32-v1.tif'
+123.6139 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-46-v1.tif'
+127.0962 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-44-v1.tif'
+130.8284 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-310-v1.tif'
+134.4773 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-54-v1.tif'
+137.8763 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-58-v1.tif'
+141.4752 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-46-v1.tif'
+144.7742 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-39-v1.tif'
+148.5231 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-44-v1.tif'
+152.2386 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-34-v1.tif'
+155.6043 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-32-v1.tif'
+159.1366 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-43-v1.tif'
+162.4189 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-45-v1.tif'
+165.7012 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-310-v1.tif'
+169.2668 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-510-v1.tif'
+172.6491 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-59-v1.tif'
+175.8982 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-43-v1.tif'
+179.0805 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-32-v1.tif'
+182.4462 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-46-v1.tif'
+185.9618 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-54-v1.tif'
+189.3774 	EXP 	unnamed ImageStim: image = 'meg_set2/f5-59-v1.tif'
+192.9930 	EXP 	unnamed ImageStim: image = 'meg_set2/f4-44-v1.tif'
+196.6419 	EXP 	unnamed ImageStim: image = 'meg_set2/f3-310-v1.tif'
+199.1814 	DATA 	Keypress: q
+199.8297 	EXP 	window1: mouseVisible = True

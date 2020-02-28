@@ -14,7 +14,7 @@ def prepDirectories():
         if not os.path.exists(arg):
               os.makedirs(arg)   
 
-def captureResponse(mode='meg',key = 'm',timeout=1):
+def captureResponse(mode='meg',keys = ['m',None],timeout=1):
     """
     Depending on the machine the experiment is running on, it either captures response from
     parallel port (mode='meg'), randomly (mode='dummy') or by key press (keyboard)
@@ -23,11 +23,14 @@ def captureResponse(mode='meg',key = 'm',timeout=1):
         return os.system("/usr/local/bin/pin 0x379")
     elif mode=='dummy':
         core.wait(timeout)
-        return random.choice([key,None])
+        return random.choice(keys)
     elif mode=='keyboard':
-        resp = event.waitKeys(keyList=[key], maxWait=timeout, timeStamped=False)
-        if resp != None: return resp[0] 
-        else: return resp   
+        t0=core.getTime()
+        event.clearEvents()
+        while core.getTime()-t0<timeout:
+            resp = event.getKeys()
+            if len(resp)>0 and resp[-1] in keys: return resp[-1]
+        return resp   
 
 def fancyFixDot(window,bg_color,fg_color='white',size=30):
     """
@@ -92,7 +95,7 @@ class Logger(object):
             self.data = self.data[sorted(self.data.columns.tolist())]
         elif sort == 'lazy':
             self.data = self.data[sorted(self.data.columns.tolist())]
-            first = ['name','expID','sub_id','sess_id','trial_count','block_no','trial_no','context','condition','correct','resp_time','total_correct','total_euro']
+            first = ['name','exp_id','sub_id','sess_id','trial_count','block_no','miniblock_no','trial_no','context','condition','correct','resp_time','total_correct','total_reward']
             try:
                 new_order = first + list(self.data.columns.drop(first))
             except KeyError as e:

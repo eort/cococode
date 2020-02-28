@@ -1,0 +1,79 @@
+2.8056 	INFO 	Loaded monitor calibration from ['2019_07_30 17:30']
+2.8113 	WARNING 	User requested fullscreen with size [1280 1024], but screen is actually [2560, 1440]. Using actual size
+3.5685 	EXP 	Created window1 = Window(allowGUI=True, allowStencil=False, args=UNKNOWN, autoLog=True, bitsMode=UNKNOWN, blendMode='avg', color=array([-0.9, -0.9, -0.9]), colorSpace='rgb', fullscr=<method-wrapper '__getattribute__' of attributeSetter object at 0x7f286e04a710>, gamma=None, kwargs=UNKNOWN, lms=UNKNOWN, monitor=<psychopy.monitors.calibTools.Monitor object at 0x7f28668ec710>, multiSample=False, name='window1', numSamples=2, pos=[0.0, 0.0], screen=1, size=array([2560, 1440]), stereo=False, units='pix', useFBO=False, useRetina=False, viewOri=0.0, viewPos=None, viewScale=None, waitBlanking=True, winType='pyglet')
+3.5686 	INFO 	Mouse: using default window
+3.6760 	EXP 	Created unnamed TextStim = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz='center', alignVert='center', antialias=True, autoLog=True, bold=False, color=array([0.85, 0.85, 0.85]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, font='', fontFiles=[], height=20, italic=False, languageStyle='LTR', name='unnamed TextStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), rgb=array([0.85, 0.85, 0.85]), text=str(...), units='pix', win=Window(...), wrapWidth=2560)
+3.6906 	EXP 	Created unnamed TextStim = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz='center', alignVert='center', antialias=True, autoLog=True, bold=False, color=array([0.85, 0.85, 0.85]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, font='', fontFiles=[], height=20, italic=False, languageStyle='LTR', name='unnamed TextStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), rgb=array([0.85, 0.85, 0.85]), text=str(...), units='pix', win=Window(...), wrapWidth=2560)
+3.7020 	EXP 	Created unnamed TextStim = TextStim(__class__=<class 'psychopy.visual.text.TextStim'>, alignHoriz='center', alignVert='center', antialias=True, autoLog=True, bold=False, color=array([0.85, 0.85, 0.85]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, font='', fontFiles=[], height=20, italic=False, languageStyle='LTR', name='unnamed TextStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), rgb=array([0.85, 0.85, 0.85]), text=str(...), units='pix', win=Window(...), wrapWidth=2560)
+3.7252 	EXP 	Created unnamed ImageStim = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=-1.0, depth=0, flipHoriz=False, flipVert=False, image='smiley.png', interpolate=False, mask=None, maskParams=None, name='unnamed ImageStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), size=array([100, 100]), texRes=128, units='pix', win=Window(...))
+3.7272 	EXP 	Created unnamed ImageStim = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=-1.0, depth=0, flipHoriz=False, flipVert=False, image='frowny.png', interpolate=False, mask=None, maskParams=None, name='unnamed ImageStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), size=array([100, 100]), texRes=128, units='pix', win=Window(...))
+3.7292 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([0.85, 0.85, 0.85]), fillColorSpace='rgb', fillRGB=array([0.85, 0.85, 0.85]), interpolate=True, lineColor=array([0.85, 0.85, 0.85]), lineColorSpace='rgb', lineRGB=array([0.85, 0.85, 0.85]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([-500., -200.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+3.7306 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([0.85, 0.85, 0.85]), fillColorSpace='rgb', fillRGB=array([0.85, 0.85, 0.85]), interpolate=True, lineColor=array([0.85, 0.85, 0.85]), lineColorSpace='rgb', lineRGB=array([0.85, 0.85, 0.85]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([-500., -200.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+3.7320 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([0.85, 0.85, 0.85]), fillColorSpace='rgb', fillRGB=array([0.85, 0.85, 0.85]), interpolate=True, lineColor=array([0.85, 0.85, 0.85]), lineColorSpace='rgb', lineRGB=array([0.85, 0.85, 0.85]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([ 500., -200.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+3.7351 	EXP 	Created unnamed ImageStim = ImageStim(__class__=<class 'psychopy.visual.image.ImageStim'>, autoLog=True, color=array([1., 1., 1.]), colorSpace='rgb', contrast=1.0, depth=0, flipHoriz=False, flipVert=False, image='practice_set2/f1-11-v1.tif', interpolate=False, mask=None, maskParams=None, name='unnamed ImageStim', opacity=1.0, ori=0.0, pos=array([0., 0.]), size=array([240., 270.]), texRes=128, units='pix', win=Window(...))
+3.7378 	EXP 	Created unnamed Circle = Circle(__class__=<class 'psychopy.visual.circle.Circle'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor='white', fillColorSpace='named', fillRGB=array([255., 255., 255.]), interpolate=True, lineColor='white', lineColorSpace='named', lineRGB=array([255., 255., 255.]), lineWidth=1.5, name='unnamed Circle', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([24., 24.]), units='pix', vertices=ndarray(...), win=Window(...))
+3.7393 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([-0.9, -0.9, -0.9]), fillColorSpace='rgb', fillRGB=array([-0.9, -0.9, -0.9]), interpolate=True, lineColor=array([-0.9, -0.9, -0.9]), lineColorSpace='rgb', lineRGB=array([-0.9, -0.9, -0.9]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+3.7407 	EXP 	Created unnamed Rect = Rect(__class__=<class 'psychopy.visual.rect.Rect'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor=array([-0.9, -0.9, -0.9]), fillColorSpace='rgb', fillRGB=array([-0.9, -0.9, -0.9]), interpolate=True, lineColor=array([-0.9, -0.9, -0.9]), lineColorSpace='rgb', lineRGB=array([-0.9, -0.9, -0.9]), lineWidth=1.5, name='unnamed Rect', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([1., 1.]), units='pix', vertices=ndarray(...), win=Window(...))
+3.7426 	EXP 	Created unnamed Circle = Circle(__class__=<class 'psychopy.visual.circle.Circle'>, autoDraw=False, autoLog=True, closeShape=True, color=method-wrapper(...), colorSpace=None, contrast=1.0, depth=0, fillColor='white', fillColorSpace='named', fillRGB=array([255., 255., 255.]), interpolate=True, lineColor='white', lineColorSpace='named', lineRGB=array([255., 255., 255.]), lineWidth=1.5, name='unnamed Circle', opacity=1.0, ori=array(0.), pos=array([0., 0.]), size=array([4., 4.]), units='pix', vertices=ndarray(...), win=Window(...))
+3.7547 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+5.4075 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+5.4075 	EXP 	unnamed Rect: width = 5.0
+5.4075 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+5.4075 	EXP 	unnamed Rect: width = 10
+5.9238 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+7.4563 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+7.4563 	EXP 	unnamed Rect: width = 15.0
+7.9694 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+12.0571 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+13.8957 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+13.8957 	EXP 	unnamed Rect: width = 10.0
+14.4088 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+16.4075 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+16.4075 	EXP 	unnamed Rect: width = 5.0
+16.4075 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+16.4075 	EXP 	unnamed Rect: width = 10
+16.9198 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+18.6787 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+18.6787 	EXP 	unnamed Rect: width = 15.0
+19.1902 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+22.6928 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+22.6928 	EXP 	unnamed Rect: width = 10.0
+23.2041 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+25.1277 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+25.1277 	EXP 	unnamed Rect: width = 15.0
+25.6390 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+29.3379 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+31.3993 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+31.3993 	EXP 	unnamed Rect: width = 20.0
+31.9102 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+34.9257 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+34.9257 	EXP 	unnamed Rect: width = 25.0
+35.4371 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+39.1208 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+42.8614 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+46.7916 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+50.3508 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+54.1734 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+55.8397 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+55.8397 	EXP 	unnamed Rect: width = 20.0
+56.3595 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+59.7721 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+59.7721 	EXP 	unnamed Rect: width = 25.0
+60.2895 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+62.0117 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+62.0117 	EXP 	unnamed Rect: width = 30.0
+62.5313 	EXP 	unnamed ImageStim: image = 'practice_set2/f1-11-v1.tif'
+64.0334 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+64.0334 	EXP 	unnamed Rect: width = 35.0
+64.5532 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+66.4484 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+66.4484 	EXP 	unnamed Rect: width = 30.0
+66.9666 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+68.7574 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+68.7574 	EXP 	unnamed Rect: width = 25.0
+69.2859 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+72.9091 	EXP 	unnamed ImageStim: image = 'practice_set2/f2-25-v1.tif'
+74.8028 	EXP 	unnamed Rect: vertices = <class 'numpy.ndarray'>
+74.8028 	EXP 	unnamed Rect: width = 20.0
+75.3293 	EXP 	unnamed TextStim: text = "Das war's! Insgesamt hast du 0.00 Euro verdient.\nVielen Dank für deine Teilnahme."
+75.3484 	EXP 	window1: mouseVisible = True

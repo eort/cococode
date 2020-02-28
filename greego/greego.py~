@@ -4,7 +4,7 @@
 #######################
 ###  import libraries  ###
 #######################
-from psychopy import visual, core, event,gui,logging #import some libraries from PsychoPy
+from psychopy import visual, core, event,gui,logging,data #import some libraries from PsychoPy
 import expTools as et # custom scripts
 import json # to load configuration files
 import sys, os # to interact with the operating system
@@ -21,14 +21,10 @@ os.system('parashell 0x378 0')
 try:
     jsonfile = sys.argv[1]
 except IndexError as e:
-    print("No config file provided. Stop it here.")
-    sys.exit(-1)
-try:
-    with open(jsonfile) as f:    
-        param = json.load(f)
-except FileNotFoundError as e:
-    print("{} is not a valid config file. Stop it here.".format(jsonfile))
-    sys.exit(-1)
+    print("No config file provided. Load default settings")
+    jsonfile = 'default_cfg.json'
+with open(jsonfile) as f:    
+    param = json.load(f)
 
 ###########################################
 ###  Create Parameters / do Overhead   ####
@@ -40,60 +36,44 @@ n_exem = param['n_exem']                # number exemplars per family
 n_fams = param['n_fams']                # number families
 fix_sleep_mean = param['fix_mean']      # mean presentation duration of fixdot
 fix_sleep_range = param['fix_range']    # min and max range of fixdot
-sess_type = param['sess_type']          # are we practicing or not
+practice = param['practice']            # are we practicing or not
 trigger = param['trigger']              # what are the MEG triggers
 
 # dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
-inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
-# check for input
-if inputGUI.OK == False:
-    print("Experiment aborted by user")
-    core.quit()
-while input_dict['sess_id']==0:
-    print('WARNING: You need to specify a session number (1 or 2)')
-    inputGUI.show()
-    if inputGUI.OK == False:
-        print("Experiment aborted by user")
-        core.quit()
+input_dict = dict(sub_id=0,sess_id=0,practice=practice)
+inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id'])
 
-# check whether settings match config file
-if sess_type!=input_dict['sess_type']:
-    print('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
-    logging.warning('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
-
-# prepare the logfile (general log file, not data log file!) and directories
+# prepare the logfile and directories
 et.prepDirectories()
 logFile = os.path.join('log',param['logFile'].format(input_dict['sub_id'],input_dict['sess_id'],datetime.now()).replace(' ','-').replace(':','-'))
 lastLog = logging.LogFile(logFile, level=logging.INFO, filemode='w')
-# create a output file that collects all variables 
-output_file = os.path.join('dat',param['exp_id'],param['output_file'].format(input_dict['sub_id'],input_dict['sess_id'],datetime.now()).replace(' ','-').replace(':','-'))
 
-# init logger variables
-# update the constant values (things that wont change)
-trial_info = { "sub_id":input_dict['sub_id'],
-            "sess_id":input_dict['sess_id'],
-            "sess_type":input_dict['sess_type'],
-            "start_exp_time":core.getTime() ,
-            "end_block_time":np.nan}
-# migrate info from logfile
-for vari in param['logVars']:
-    trial_info[vari] = param[vari]
-# plus two more variables
-trial_info['logFile'] = logFile
-trial_info['output_file'] = output_file
+# when did experiment start
+start_exp_time = core.getTime() 
 
 ###########################################
 ###  Create Experimental Sequence      ####
 ###########################################
-# define the response button (flexible for with response box vs. keyboard)
-if param['resp_mode'] == 'meg':
-    resp_go = param['response_button']
+
+# counterbalance which greebles are used in which session
+if input_dict['sub_id']%2:
+    if input_dict['sess_id'] == 1:
+        imageDir = param['imageDir'][0]
+    elif input_dict['sess_id'] == 2:
+        imageDir = param['imageDir'][1]
 else:
-    resp_go = param['response_key']
-resp_keys = [resp_go,param['resp_nogo']]
-# initialize the previous item to prevent greeble repeats
-prev_item = None
+    if input_dict['sess_id'] == 1:
+        imageDir = param['imageDir'][1]
+    elif input_dict['sess_id'] == 2:
+        imageDir = param['imageDir'][0]
+
+# load greeble file path 
+image_paths = sorted(glob.glob(os.path.join(imageDir,'*.tif')))
+# split greebles into families
+if not practice:
+    families = [image_paths[:n_exem],image_paths[n_exem:2*n_exem],image_paths[2*n_exem:]]
+else:
+    families = [[image_paths[0]],[image_paths[1]]]
 
 # how many times each stimulus per mini block
 n_unique = n_exem*n_fams
@@ -102,45 +82,43 @@ if n_trials%n_unique != 0:
     print('WARNING: {} unique trials cannot be shown equally often in {} trials.'.format(n_unique,n_trials))
     logging.warning('WARNING: {} unique orientations cannot be shown equally often in {} trials.'.format(n_unique,n_trials))
 
-# counterbalance which greebles are used in which session
-if input_dict['sub_id']%2:
-    if input_dict['sess_id'] == 1:
-        imageDir = '{}_set1'.format(input_dict['sess_type'])
-    elif input_dict['sess_id'] == 2:
-        imageDir = '{}_set2'.format(input_dict['sess_type'])
+# init logger
+# update the constant values (things that wont change)
+trial_info = { "sub_id":input_dict['sub_id'],
+            "sess_id":input_dict['sess_id'],
+            "start_exp_time":start_exp_time,
+            "block_on_trigger":trigger['block_on'],
+            "block_off_trigger":trigger['block_off'],
+            "trial_on_trigger":trigger['trial_on'],
+            "trial_off_trigger":trigger['trial_off'],
+            "go_greeble_trigger":trigger['go_greeble'],
+            "nogo_greeble_trigger":trigger['nogo_greeble'],
+            "greeble_off_trigger":trigger['greeble_off'],
+            "fb_on_trigger":trigger['fb_on'],
+            "fb_off_trigger":trigger['fb_off'],
+            "index_trigger":trigger['index'],
+            "end_block_time":np.nan}
+
+for vari in param['logVars']:
+    trial_info[vari] = param[vari]
+# create a output file that collects all variables 
+output_file = os.path.join('dat',param['expID'],param['output_file'].format(input_dict['sub_id'],input_dict['sess_id'],datetime.now()).replace(' ','-').replace(':','-'))
+trial_info['logFile'] = logFile
+trial_info['output_file'] = output_file
+
+if param['mode'] == 'meg':
+    resp_go = param['response_button']
 else:
-    if input_dict['sess_id'] == 1:
-        imageDir = '{}_set2'.format(input_dict['sess_type'])
-    elif input_dict['sess_id'] == 2:
-        imageDir = '{}_set1'.format(input_dict['sess_type'])
-
-# load greeble file paths
-image_paths = sorted(glob.glob(os.path.join(imageDir,'*.tif')))
-# split greebles into families, to go and no go category + shuffle 
-families = np.array(image_paths).reshape((n_fams,n_exem))
-if input_dict['sess_type']=='practice':
-    go_stim = families[0].tolist()*n_repeats
-    nogo_stim = families[1].tolist()*n_repeats
-else:
-    np.random.shuffle(families.T)
-    go_stim = families[:,:n_exem//2].flatten()
-    nogo_stim = families[:,n_exem//2:].flatten()
-
-# add go/nogo stim to logfile        
-trial_info['go_stim'] = go_stim
-trial_info['nogo_stim'] = nogo_stim
-
-# reset block variables
-trial_info['total_correct'] = 0
-
-# make a sequence of fix-stim jitter
-fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sleep_range, size=(n_miniblocks,n_trials))
-
+    resp_go = param['response_key']
+# initialize the previous item to prevent greeble repeats
+prev_item = None
 ################################
 ###  START ACTUAL EXPERIMENT ###
 ################################
+
 #create a window
 win = visual.Window(size=param['win_size'],color=param['bg_color'],fullscr=param['fullscreen'],monitor="testMonitor", units="pix",screen=1)
+
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
 
@@ -168,19 +146,41 @@ feedback_stims = [frowny,smiley]
 ###########################
 ###  PREPARE BLOCK VARS ###
 ###########################
+# assign stimuli to go and no go category + shuffle 
+all_stim = list(families)
+if practice:
+    go_stim = all_stim[0]*n_repeats
+    nogo_stim = all_stim[1]*n_repeats
+else:
+    fam1,fam2,fam3 = all_stim
+    for fam in [fam1,fam2,fam3]:
+        np.random.shuffle(fam)
+    
+    # split families in half to assign to go and nogo
+    go_stim=(fam1[:n_exem//2]+fam2[:n_exem//2]+fam3[:n_exem//2])
+    nogo_stim=(fam1[n_exem//2:]+fam2[n_exem//2:]+fam3[n_exem//2:])
+
+# add go/nogo stim to logfile        
+trial_info['go_stim'] = go_stim
+trial_info['nogo_stim'] = nogo_stim
+
+# reset block variables
+trial_info['total_correct'] = 0
+
+# make a sequence of fix-stim jitter
+fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sleep_range, size=(49,12))
+
 # draw intro before starting block
 startexp.draw()
 # show intro
 win.flip()
 # wait for button press
-if param['run_mode'] != 'dummy':
+if param['mode'] != 'dummy':
     event.waitKeys(keyList = ['space'])
 
 # send trigger
-et.sendTriggers(trigger['block_on'],mode=param['resp_mode'])
+et.sendTriggers(trigger['block_on'],mode=param['mode'])
 trial_info['start_block_time'] = core.getTime()
-trial_info['block_no'] = 1
-
 ###########################
 ###  START BLOCK LOOP # ###
 ###########################
@@ -197,8 +197,9 @@ for miniblock_no in range(n_miniblocks):
     # assign stimuli to trials
     np.random.shuffle(go_stim)
     np.random.shuffle(nogo_stim)
+
     # make sure twice the same stimulus in a row does not happen
-    if trial_info['sess_type'] != 'practice':
+    if not practice:
         while prev_item in [go_stim[0],nogo_stim[0]]:
             np.random.shuffle(go_stim)    
             np.random.shuffle(nogo_stim)
@@ -206,7 +207,7 @@ for miniblock_no in range(n_miniblocks):
     nogo_seq=list(nogo_stim)
     
     # define correct response sequence
-    corr_resp_seq = [resp_keys[0] if i==1 else resp_keys[1] for i in trial_seq ]
+    corr_resp_seq = [resp_go if i==1 else trial_info['resp_nogo'] for i in trial_seq ]
     # convenience variable to know sequence of gos and nogos
     gonogo_seq = ['go' if i==1 else 'nogo' for i in trial_seq ]
     # actual file path sequence
@@ -217,14 +218,13 @@ for miniblock_no in range(n_miniblocks):
     if miniblock_no+1 in trial_info['pause_blocks']:
         # send trigger for block off things
         trial_info['end_block_time'] = core.getTime()
-        et.sendTriggers(trigger['block_off'],mode=param['resp_mode'])
+        et.sendTriggers(trigger['block_off'],mode=param['mode'])
         pause.draw()
         win.flip()
-        if param['run_mode'] != 'dummy':
+        if param['mode'] != 'dummy':
             event.waitKeys(keyList = ['space'])
-        trial_info['block_no'] +=1
         # send trigger for block on things
-        et.sendTriggers(trigger['block_on'],mode=param['resp_mode'])
+        et.sendTriggers(trigger['block_on'],mode=param['mode'])
 
 
         # time when block started
@@ -242,6 +242,7 @@ for miniblock_no in range(n_miniblocks):
     ##########################
     ###  START TRIAL LOOP  ###
     ##########################
+
     for trial_no in range(n_trials):
         trial_info['respDur_noresp'] = np.nan
         trial_info['stimDur_noresp']= np.nan
@@ -254,12 +255,13 @@ for miniblock_no in range(n_miniblocks):
         if 'q' in escape:
             et.finishExperiment(win,data_logger)
         
+        trial_info['trial_no'] = trial_no+1
+        trial_info['trial_count']+=1
+
         # draw duration of fix cross from predefined distribution
         trial_info['fix_sleep'] = fix_seq[miniblock_no,trial_no]
 
         # set trial-specific variables
-        trial_info['trial_no'] = trial_no+1
-        trial_info['trial_count']+=1
         # go or nogo
         trial_info['condition'] = gonogo_seq[trial_no]
         # which greeble
@@ -284,9 +286,9 @@ for miniblock_no in range(n_miniblocks):
         t0 = core.getTime()
         trial_info['start_trial_time'] = core.getTime()
         # send triggers
-        et.sendTriggers(trigger['trial_on'],mode=param['resp_mode'])
+        et.sendTriggers(trigger['trial_on'],mode=param['mode'])
         # sleep during fixation
-        core.wait(trial_info['fix_sleep']-0.02*int(param['resp_mode']=='meg'))
+        core.wait(trial_info['fix_sleep']-0.02*int(param['mode']=='meg'))
 
         # draw stimulus
         greeble.draw()
@@ -300,9 +302,9 @@ for miniblock_no in range(n_miniblocks):
         t1 = core.getTime()
         # send trigger
         if trial_info['condition'] == 'go':
-            et.sendTriggers(trigger['go_greeble'],mode=param['resp_mode'])
+            et.sendTriggers(trigger['go_greeble'],mode=param['mode'])
         elif trial_info['condition'] == 'nogo':
-            et.sendTriggers(trigger['nogo_greeble'],mode=param['resp_mode'])
+            et.sendTriggers(trigger['nogo_greeble'],mode=param['mode'])
 
         # prepare response screen
         if trial_info['context'] == 'reward':    
@@ -317,20 +319,14 @@ for miniblock_no in range(n_miniblocks):
         # start response time measure
         enter_respPhase = 1
         #define how long a response is waited for
-        timeout = param['stim_sleep']-0.02*int(param['resp_mode']=='meg')
+        timeout = param['stim_sleep']-0.02*int(param['mode']=='meg')
         # get response
         while True:
-            # either get a real response or let the computer respond
-            if param['run_mode']=='dummy':
-                core.wait(timeout)
-                response = np.random.choice(resp_keys)
-            else:
-                response = et.captureResponse(mode=param['resp_mode'],keys=resp_keys,timeout= timeout)
-            
+            response = et.captureResponse(mode=param['mode'],key=resp_go,timeout= timeout)
             if response == resp_go:
                 break
 
-            if core.getTime()-trial_info['start_stim_time']>param['resp_timeout']:
+            if core.getTime()-trial_info['start_stim_time']>param['resp_sleep']:
                 # define nogo response variables
                 response = None
                 t4 = core.getTime()
@@ -343,10 +339,10 @@ for miniblock_no in range(n_miniblocks):
                 win.flip()
                 t3 = core.getTime()
                 trial_info['stimDur_noresp'] = t3-t1
-                et.sendTriggers(trigger['greeble_off'],mode=param['resp_mode'])
+                et.sendTriggers(trigger['greeble_off'],mode=param['mode'])
                 trial_info['end_stim_time'] = core.getTime()
                 enter_respPhase = 0 
-                timeout = param['resp_timeout']-param['stim_sleep'] - 0.02*int(param['resp_mode']=='meg')
+                timeout = param['resp_sleep']-0.02*int(param['mode']=='meg')
 
         ##########################
         ###  POST PROCESSING   ###
@@ -354,7 +350,7 @@ for miniblock_no in range(n_miniblocks):
         if enter_respPhase == 1:
             win.flip()
             t2 = core.getTime()
-            et.sendTriggers(trigger['greeble_off'],mode=param['resp_mode'])
+            et.sendTriggers(trigger['greeble_off'],mode=param['mode'])
             trial_info['stimDur_resp'] = t2-t1
             trial_info['end_stim_time'] = core.getTime()
 
@@ -394,17 +390,16 @@ for miniblock_no in range(n_miniblocks):
         # show feedback (if any)
         t6 = core.getTime()
         win.flip()            
-        et.sendTriggers(trigger['fb_on'],mode=param['resp_mode'])
-        core.wait(param['feed_sleep']-0.02*int(param['resp_mode']=='meg'))
+        et.sendTriggers(trigger['fb_on'],mode=param['mode'])
+        core.wait(param['feed_sleep']-0.02*int(param['mode']=='meg'))
         # add progress bar if in right context
-        if trial_info['context'] == 'reward':
-            progress_bar.draw()    
-            progress_bar_start.draw()
-            progress_bar_end.draw()   
-            win.flip()
+        progress_bar.draw()    
+        progress_bar_start.draw()
+        progress_bar_end.draw()   
+        win.flip()
         t7 = core.getTime()
         # triggers for fb off
-        et.sendTriggers(trigger['fb_off'],mode=param['resp_mode'])
+        et.sendTriggers(trigger['fb_off'],mode=param['mode'])
         # timing checks
         trial_info['fixDur'] = t1-t0      
         trial_info['feedbackDur'] = (t7-t6)
@@ -412,7 +407,7 @@ for miniblock_no in range(n_miniblocks):
 
         # trial off time
         trial_info['end_trial_time'] = core.getTime()
-        et.sendTriggers(trigger['trial_off'],mode=param['resp_mode'])
+        et.sendTriggers(trigger['trial_off'],mode=param['mode'])
         if trial_info['trial_count'] == 1:
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info)
         data_logger.writeTrial(trial_info)
@@ -423,14 +418,14 @@ for miniblock_no in range(n_miniblocks):
     trial_info['end_block_time'] = core.getTime()
 
 # end of experiment message + total feedback
-if trial_info['sess_type'] != 'practice':
+if practice:
     endExp.text = 'Fertig. Deine Accuracy ist {}%'.format(int(100*trial_info['total_correct']/trial_info['trial_count']))
 else:
     endExp.text = param['exp_outro'].format(max(0,trial_info['total_reward']))
 
 endExp.draw()
 win.flip()
-if param['run_mode'] != 'dummy':
+if param['mode'] != 'dummy':
     event.waitKeys(keyList = ['space'])  
 
 #cleanup
