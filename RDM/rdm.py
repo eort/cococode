@@ -219,7 +219,6 @@ for block_no in range(n_blocks):
                     # end times of stimulation
                     et.sendTriggers(trigger['stim_off'],mode=param['resp_mode'])
                     trial_info['end_stim_time'] = core.getTime()
-                    trial_info['stimDur'] = trial_info['end_stim_time']-trial_info['start_stim_time']
                     drawStim=False
                 for elem in fixDot:
                     elem.draw()      
@@ -239,9 +238,11 @@ for block_no in range(n_blocks):
 
             # check the response
             if response in resp_keys:
-                time_response = core.getTime()  
-                trial_info['end_stim_time'] = time_response
+                time_response = core.getTime() 
+                if drawStim:
+                    trial_info['end_stim_time'] = time_response
                 core.wait(0.01) # sleep to make responses not overlap with following stim
+                et.sendTriggers(trigger['stim_off'],mode=param['resp_mode'])
                 break
 
         ##########################
@@ -250,6 +251,7 @@ for block_no in range(n_blocks):
         if response == None:
             time_response = core.getTime()
         # start handling response variables
+        trial_info['stimDur'] = trial_info['end_stim_time']-trial_info['start_stim_time']
         trial_info['resp_time'] = time_response-trial_info['start_stim_time']
         trial_info['resp_key'] = response
         trial_info['correct'] = int(response==trial_info['corr_resp'])
