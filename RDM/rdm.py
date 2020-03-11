@@ -1,5 +1,4 @@
 # created by Eduard Ort, 2019 
-
 #######################
 ###  import libraries  ###
 #######################
@@ -49,8 +48,8 @@ inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','se
 if inputGUI.OK == False:
     print("Experiment aborted by user")
     core.quit()
-while input_dict['sess_id']==0:
-    print('WARNING: You need to specify a session number (1 or 2)')
+while input_dict['sess_id'] not in [1,2,3]:
+    print('WARNING: You need to specify a session number (1,2,3)')
     inputGUI.show()
     if inputGUI.OK == False:
         print("Experiment aborted by user")
@@ -88,14 +87,15 @@ trial_info['output_file'] = output_file
 # prepare coherence levels of dots
 coherence_lvls = param['coherence_lvl']   
 n_cohs = len(coherence_lvls)
-exp_frames = round(param['stim_sleep']*param['framerate'])
 
 if param['resp_mode'] == 'meg':
     resp_left = param['resp1_button']
     resp_right = param['resp2_button']
+    pause = param['pause_button']
 else:
     resp_left = param['resp1_key']
     resp_right = param['resp2_key']
+    pause = param['pause_key']
 resp_keys = [resp_left,resp_right]
 # make a sequence of fix-stim jitter
 fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sleep_range, size=(n_blocks,n_trials))
@@ -104,9 +104,12 @@ fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sl
 ###  START ACTUAL EXPERIMENT ###
 ################################
 #create a window
-win = visual.Window(size=param['win_size'],color=param['bg_color'],fullscr=trial_info['fullscreen'],monitor="testMonitor", units="pix",screen=1)
+win = visual.Window(size=param['win_size'],color=param['bg_color'],fullscr=trial_info['fullscreen'], units="pix",screen=1)
+for i in range(10):
+    win.flip()
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
+event.clearEvents()
 #########################
 ###  prepare stimuli  ###
 #########################
@@ -150,15 +153,13 @@ for block_no in range(n_blocks):
     # reset block variables
     trial_info['total_correct'] = 0 
    
-    # show block intro
-    startBlock.text = param["blockStart"].format(block_no+1)
-    startBlock.draw()
-
-    # show and wait for response
-    win.flip()
     # wait for button press
     if param['run_mode'] != 'dummy':
-        event.waitKeys(keyList = ['space'])
+        startBlock.text = param["blockStart"].format(block_no+1)
+        startBlock.draw()
+        win.flip()
+        event.waitKeys(keyList = [pause])
+
     # time when block started
     trial_info['start_block_time'] = core.getTime()
     trial_info['block_no']=block_no+1
@@ -176,12 +177,9 @@ for block_no in range(n_blocks):
             et.finishExperiment(win,data_logger)
 
         # for timing tests, delete later
-        trial_info['respDur'] = np.nan
-        trial_info['stimDur_noresp']= np.nan
-        trial_info['stimDur_resp']= np.nan
+        trial_info['stimDur']= np.nan
         trial_info['feedbackDur']= np.nan
-        trial_info['fixDur']= np.nan
-
+        
         # draw duration of fix cross from predefined distribution
         trial_info['fix_sleep'] = fix_seq[block_no,trial_no]
         trial_info['trial_no'] = trial_no+1
@@ -193,82 +191,64 @@ for block_no in range(n_blocks):
         # draw RDK stimulus
         cloud.coherence = trial_info['cur_coherence']
         cloud.dir = trial_info['cur_dir']
+
         # start trial
         trial_info['start_trial_time'] = core.getTime()
 
         # draw fixation and wait for 
         for elem in fixDot:
-            elem.draw()        
-        win.flip()
+            elem.draw()  
+        win.flip()        
         # send triggers
         et.sendTriggers(trigger['trial_on'],mode=param['resp_mode'])
         core.wait(trial_info['fix_sleep']-0.02*int(param['resp_mode']=='meg'))
-
-        # clear keyboard responses if there are any
-        if param['resp_mode']=='keyboard':
-            event.clearEvents()
-        # simulate a key press
-        if param['run_mode']=='dummy':
-            respFrame = np.random.choice(range(exp_frames))
-
+        
+        trial_info['fixDur']= core.getTime()-trial_info['start_trial_time']
+        
         # send triggers
         et.sendTriggers(trigger['coh_{}_{}'.format(param['dir1'],coherence_lvls.index(cloud.coherence)+1)],mode=param['resp_mode'])
         # start response time measure
         trial_info['start_stim_time'] = core.getTime()
-        for frame in range(exp_frames):
-            for elem in fixDot:
-                elem.draw()      
-            cloud.draw()
-            win.flip()
-            # get response
-            # for dummies
-            if param['run_mode']=='dummy':
-                if respFrame == frame:
-                    response = np.random.choice(resp_keys+[None])
-                else:
-                    response = None
-            # for smarties
+        
+        # present stims
+        drawStim = True
+        while core.getTime()-trial_info['start_stim_time']<param['resp_timeout']:
+            # remove stimulus
+            if core.getTime()-trial_info['start_stim_time']>=param['stim_sleep']:
+                if drawStim:
+                    # end times of stimulation
+                    et.sendTriggers(trigger['stim_off'],mode=param['resp_mode'])
+                    trial_info['end_stim_time'] = core.getTime()
+                    trial_info['stimDur'] = trial_info['end_stim_time']-trial_info['start_stim_time']
+                    drawStim=False
+                for elem in fixDot:
+                    elem.draw()      
+                win.flip()
+            # show cloud
             else:
-                response = et.captureResponse(mode=param['resp_mode'],keys=resp_keys)
+                for elem in fixDot:
+                    elem.draw()      
+                cloud.draw()
+                win.flip()
+
+            # get response
+            if param['run_mode']=='dummy':
+                    response = np.random.choice(resp_keys+[None]*int(param['framerate']*param['resp_timeout']))
+            else:
+                response = et.captureResponse(mode=param['resp_mode'],keys=resp_keys)        
+
             # check the response
             if response in resp_keys:
-                time_response = core.getTime()
-                trial_info['stimDur_resp'] = time_response-t1
+                time_response = core.getTime()  
+                trial_info['end_stim_time'] = time_response
                 core.wait(0.01) # sleep to make responses not overlap with following stim
                 break
-
-        # remove stimulus regardless of keypress or not       
-        for elem in fixDot:
-            elem.draw()  
-        win.flip()
-        # end times of stimulation
-        trial_info['end_stim_time'] = core.getTime()
-        # send triggers
-        et.sendTriggers(trigger['stim_off'],mode=param['resp_mode'])
-
-        timeout = param['resp_timeout']-(core.getTime()-trial_info['start_stim_time'])
-        if response ==None:
-            t3 = core.getTime()
-            trial_info['stimDur_noresp'] = t3-t1
-            while True:
-                if param['run_mode']=='dummy':
-                    core.wait(timeout)
-                    response = np.random.choice(resp_keys+[None])
-                else:
-                    response = et.captureResponse(mode=param['resp_mode'],keys=resp_keys)
-                # check response
-                if response in resp_keys:
-                    break
-                # response timeout
-                if core.getTime()-trial_info['start_stim_time']>timeout:
-                    break
-            time_response = core.getTime()
-            trial_info['respDur'] = time_response-t3
-            core.wait(0.01) # sleep to make responses not overlap with following stim
 
         ##########################
         ###  POST PROCESSING   ###
         ##########################
+        if response == None:
+            time_response = core.getTime()
         # start handling response variables
         trial_info['resp_time'] = time_response-trial_info['start_stim_time']
         trial_info['resp_key'] = response
@@ -293,7 +273,6 @@ for block_no in range(n_blocks):
         
         # send triggers
         trial_info['end_trial_time'] = core.getTime()
-        win.flip()
         et.sendTriggers(trigger['trial_off'],mode=param['resp_mode'])
         
         # logging
@@ -304,12 +283,12 @@ for block_no in range(n_blocks):
     # send triggers
     et.sendTriggers(trigger['block_off'],mode=param['resp_mode'])
 
-    # show text at the end of a block        
-    endBlock.text = param["blockEnd"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
-    endBlock.draw()
-    win.flip()
-    if param['run_mode'] != 'dummy':
-        event.waitKeys(keyList = ['space'])      
+    # show text at the end of a block 
+    if param['run_mode'] != 'dummy':      
+        endBlock.text = param["blockEnd"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
+        endBlock.draw()
+        win.flip()
+        core.wait(param['pause_sleep'])      
 
 # end of experiment message
 endExp.draw()

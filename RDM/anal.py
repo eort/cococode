@@ -8,10 +8,14 @@ from IPython import embed as shell
 
 
 def runAnal(datFolder):
-
-    inFiles = sorted(glob.glob(datFolder + '/*.csv'))
-    pdList = [pd.read_csv(f) for f in inFiles]
-    allDat = pd.concat(pdList, axis=0, ignore_index=True)
+    if not os.path.isfile(datFolder):
+        inFiles = sorted(glob.glob(datFolder + '/*.csv'))
+        pdList = [pd.read_csv(f) for f in inFiles]
+        allDat = pd.concat(pdList, axis=0, ignore_index=True)
+        outpath=os.path.join(datFolder,'group_results.pdf')
+    else:
+        allDat = pd.read_csv(datFolder)
+        outpath= datFolder.replace('csv','png')
 
     #preprocess
     direction  = [-1 if c else 1 for c in allDat.cur_dir]          
@@ -63,9 +67,9 @@ def runAnal(datFolder):
     sns.scatterplot(x="cur_coherence", y="resp_time", data=thirdlvl,ax = axs[1,1])
     sns.lineplot(x="cur_coherence", y="resp_time", data=thirdlvl,ax = axs[1,1])
     axs[1,1].set(xlabel='Dot Coherence (%)', ylabel='Response Time (%)')
-
-    fig.savefig(os.path.join(datFolder,'group_results.pdf'))
-    plt.close() 
+    if not os.path.isfile(datFolder):
+        fig.savefig(outpath)
+        plt.close() 
 
 
     for idx,sub_id in enumerate(secondlvl.sub_id.unique()):
@@ -97,7 +101,7 @@ def runAnal(datFolder):
         sns.lineplot(x="cur_coherence", y="resp_time", data=thirdlvl,ax = axs[1,1])
         axs[1,1].set(xlabel='Dot Coherence (%)', ylabel='Response Time (%)')
 
-        fig.savefig(os.path.join(inFiles[idx].replace('csv','png')))
+        fig.savefig(outpath)
         plt.close() 
 
 
