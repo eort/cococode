@@ -140,6 +140,10 @@ trial_info['total_correct'] = 0
 # make a sequence of fix-stim jitter
 fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sleep_range, size=(n_miniblocks,n_trials))
 
+# convert timing to frames
+pause_frames = round(param['pause_sleep']*param['framerate'])
+feed_frames = round(param['feed_sleep']*param['framerate'])
+
 ################################
 ###  START ACTUAL EXPERIMENT ###
 ################################
@@ -163,7 +167,7 @@ progress_bar =visual.Rect(win,width=10,height=20,lineColor=param['fg_color'],fil
 progress_bar_start =visual.Rect(win,width=10,height=20,lineColor=param['fg_color'],fillColor=param['fg_color'],pos = [-500,-200])
 progress_bar_end =visual.Rect(win,width=10,height=20,lineColor=param['fg_color'],fillColor=param['fg_color'],pos = [500,-200])
 # Greeble and fixation dot
-greeble = visual.ImageStim(win,image=image_paths[0],size=(240,270))
+greeble = visual.ImageStim(win,image=image_paths[0],size=(320*param['image_scale'],360*param['image_scale']))
 fixDot = et.fancyFixDot(win, bg_color = param['bg_color'],size=24) # fixation dot
 
 # combine feedback stims to make it easier later
@@ -173,16 +177,18 @@ feedback_stims = [frowny,smiley]
 ###  PREPARE BLOCK VARS ###
 ###########################
 # draw intro before starting block
-startexp.draw()
-# show intro
-win.flip()
-# wait for button press
 if param['run_mode'] != 'dummy':
-    event.waitKeys(keyList = [pause_resp])
+    startexp.draw()
+    trial_info['start_block_time']=win.flip()
+    while True:
+        startexp.draw()
+        win.flip()                        
+        cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
+        if cont == pause_resp:
+            break
 
 # send trigger
 et.sendTriggers(trigger['block_on'],mode=param['resp_mode'])
-trial_info['start_block_time'] = core.getTime()
 trial_info['block_no'] = 1
 
 ###########################
@@ -219,18 +225,22 @@ for miniblock_no in range(n_miniblocks):
     # If a pause block occur, interupt sequence and show a message
     # these pauses are the actual block breaks
     if miniblock_no+1 in trial_info['pause_blocks']:
-        # send block off trigger 
-        trial_info['end_block_time'] = core.getTime()
+        # show pause and send block off trigger 
+        pause.draw()
+        trial_info['end_block_time'] = win.flip() 
         et.sendTriggers(trigger['block_off'],mode=param['resp_mode'])
         if param['run_mode'] != 'dummy':
-            pause.draw()
-            win.flip()  
-            core.wait(param['pause_sleep']) 
-            # draw intro before starting block
-            startexp.draw()
-            # show intro
-            win.flip()         
-            event.waitKeys(keyList = [pause_resp])
+            for frame in range(pause_frames):
+                pause.draw()
+                win.flip() 
+            # show intro 
+            while True:
+                startexp.draw()
+                win.flip()                        
+                cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
+                if cont == pause_resp:
+                    break
+
         trial_info['block_no'] +=1
         # send trigger for block on things
         et.sendTriggers(trigger['block_on'],mode=param['resp_mode'])
@@ -252,6 +262,8 @@ for miniblock_no in range(n_miniblocks):
     ###  START TRIAL LOOP  ###
     ##########################
     for trial_no in range(n_trials):
+        trial_info['start_feed_time']=np.nan
+        trial_info['end_feed_time']=np.nan
         trial_info['feedbackDur']= np.nan
         trial_info['end_stim_time']= np.nan
         # force quite experiment
@@ -261,6 +273,7 @@ for miniblock_no in range(n_miniblocks):
         
         # draw duration of fix cross from predefined distribution
         trial_info['fix_sleep'] = fix_seq[miniblock_no,trial_no]
+        fix_frames = int(trial_info['fix_sleep']*param['framerate'])
 
         # set trial-specific variables
         trial_info['trial_no'] = trial_no+1
@@ -274,79 +287,84 @@ for miniblock_no in range(n_miniblocks):
         # set current greeble image
         greeble.setImage(trial_info['stim'])
 
-        # make presence of progress bar contingent on context
-        if trial_info['context'] == 'reward':    
-            # draw progress bar
-            progress_bar.draw()    
-            progress_bar_start.draw()
-            progress_bar_end.draw()  
-
-        # draw fixation 
-        for elem in fixDot:
-            elem.draw()        
-        # present it
-        win.flip()
-
-        trial_info['start_trial_time'] = core.getTime()
+        
         # send triggers
         et.sendTriggers(trigger['trial_on'],mode=param['resp_mode'])
-        # sleep during fixation
-        core.wait(trial_info['fix_sleep']-0.02*int(param['resp_mode']=='meg'))
-        trial_info['fixDur'] = core.getTime()-trial_info['start_trial_time']
+
+        # fixation period
+        for frame in range(fix_frames):
+            # make presence of progress bar contingent on context
+            if trial_info['context'] == 'reward':    
+                et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end])            
+            et.drawCompositeStim(fixDot)    
+            if frame == 0:
+                # start trial
+                trial_info['start_trial_time'] = win.flip() 
+            else:
+                trial_info['start_stim_time'] =win.flip()
+
+
+        trial_info['fixDur'] =  trial_info['start_stim_time']-trial_info['start_trial_time']        
         # draw stimulus
         greeble.draw()
         if trial_info['context'] == 'reward':
-            progress_bar.draw()    
-            progress_bar_start.draw()
-            progress_bar_end.draw()   
-            
-        trial_info['start_stim_time'] = core.getTime()
-        win.flip()
+            et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end])            
+
+        ##########################
+        ###  STIM + RESPONSE   ###
+        ##########################            
+        trial_info['start_stim_time'] = win.flip()
+        trial_info['fixDur'] =  trial_info['start_stim_time']-trial_info['start_trial_time']
 
         # send trigger
         if trial_info['condition'] == 'go':
             et.sendTriggers(trigger['go_greeble'],mode=param['resp_mode'])
         elif trial_info['condition'] == 'nogo':
             et.sendTriggers(trigger['nogo_greeble'],mode=param['resp_mode'])
-        
+
+        # do it framewise rather than timeout based
+        resp_frames = round((param['resp_timeout']-(core.getTime()-trial_info['start_stim_time']))*param['framerate'])
+        stim_frames = round((param['stim_sleep']-(core.getTime()-trial_info['start_stim_time']))*param['framerate'])
+
         if param['resp_mode']=='keyboard':
             event.clearEvents()
-        # start response time measure
-        while core.getTime()-trial_info['start_stim_time']<param['resp_timeout']:
-            # either get a real response or let the computer respond
+        if param['run_mode']=='dummy':
+            dummy_resp_frame = np.random.choice(range(resp_frames))
+
+        for frame in range(resp_frames):
+            if frame<stim_frames:
+                greeble.draw()
+                if trial_info['context'] == 'reward':
+                    et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end])     
+                trial_info['end_stim_time'] =win.flip()    
+            else:
+                if frame==stim_frames:
+                    trial_info['end_stim_time'] = core.getTime()
+                    et.sendTriggers(trigger['greeble_off'],mode=param['resp_mode'])
+                et.drawCompositeStim(fixDot)
+                if trial_info['context'] == 'reward':
+                    et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end]) 
+                win.flip()
+
             if param['run_mode']=='dummy':
-                core.sleep(0.4) # arbitrarily defined
-                response = np.random.choice(resp_keys)
+                if dummy_resp_frame == frame:
+                    response = np.random.choice(resp_keys)
+                else: response = None
             else:
                 response = et.captureResponse(mode=param['resp_mode'],keys=resp_keys)
+
             # break if go
             if response == resp_go:
-                if np.isnan(trial_info['end_stim_time']):
-                    trial_info['end_stim_time'] = core.getTime()    
                 core.wait(0.01)
-                break
-            # remove stimulus if timeout reached
-            if (core.getTime()-trial_info['start_stim_time'])>param['stim_sleep']:
-                if np.isnan(trial_info['end_stim_time']):
-                    trial_info['end_stim_time'] = core.getTime()
-                et.sendTriggers(trigger['greeble_off'],mode=param['resp_mode'])
-                # prepare response screen
-                if trial_info['context'] == 'reward':    
-                    progress_bar.draw()    
-                    progress_bar_start.draw()
-                    progress_bar_end.draw()   
-            
-                # draw fixation 
-                for elem in fixDot:
-                    elem.draw()             
-                win.flip()
+                if frame < stim_frames:
+                    et.sendTriggers(trigger['greeble_off'],mode=param['resp_mode'])
+                break           
 
         ##########################
         ###  POST PROCESSING   ###
         ##########################
         # start handling response variables
         trial_info['stim_dur'] = trial_info['end_stim_time']-trial_info['start_stim_time']
-        trial_info['resp_dur'] = core.getTime()-trial_info['start_stim_time']
         trial_info['resp_time'] = core.getTime()-trial_info['start_stim_time']
         trial_info['resp_key'] = response
         trial_info['correct'] = int(response==trial_info['corr_resp'])
@@ -373,36 +391,31 @@ for miniblock_no in range(n_miniblocks):
 
                 # show feedback, depending on context   
                 feedback_stims[int(trial_info['correct'])].draw()             
-            
-                # add progress bar if in right context
-                progress_bar.draw()    
-                progress_bar_start.draw()
-                progress_bar_end.draw()   
 
-                # show feedback (if any)
-                t6 = core.getTime()
-                win.flip()            
-                et.sendTriggers(trigger['fb_on'],mode=param['resp_mode'])
-                core.wait(param['feed_sleep']-0.02*int(param['resp_mode']=='meg'))
                 # add progress bar if in right context
-                if trial_info['context'] == 'reward':
-                    progress_bar.draw()    
-                    progress_bar_start.draw()
-                    progress_bar_end.draw()   
-                    win.flip()
-                t7 = core.getTime()
+                et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end])
+                trial_info['start_feed_time'] = win.flip()                 
+                et.sendTriggers(trigger['fb_on'],mode=param['resp_mode'])
+                
+                for frame in range(feed_frames):
+                    # show feedback, depending on context   
+                    feedback_stims[int(trial_info['correct'])].draw()             
+
+                    # add progress bar if in right context
+                    et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end])  
+                    win.flip()            
+                    
+                trial_info['end_feed_time'] = core.getTime()
                 # triggers for fb off
                 et.sendTriggers(trigger['fb_off'],mode=param['resp_mode'])
-                # timing checks
-                      
-                trial_info['feedbackDur'] = t7-t6
-                # write variables to logfile
+                # timing checks      
+                trial_info['feedbackDur'] = trial_info['end_feed_time']-trial_info['start_feed_time']
 
         # trial off time
         trial_info['end_trial_time'] = core.getTime()
         et.sendTriggers(trigger['trial_off'],mode=param['resp_mode'])
         if trial_info['trial_count'] == 1:
-            data_logger = et.Logger(outpath=output_file,nameDict = trial_info)
+            data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = param['first_columns'])
         data_logger.writeTrial(trial_info)
 
     # update the previous greeble which codes the last greeble in a miniblock
@@ -416,10 +429,12 @@ if trial_info['sess_type'] != 'practice':
 else:
     endExp.text = param['exp_outro'].format(max(0,trial_info['total_reward']))
 
-endExp.draw()
-win.flip()
 if param['run_mode'] != 'dummy':
-    event.waitKeys(keyList = ['space'])  
-
+    while True:
+        endExp.draw()
+        win.flip()
+        cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
+        if cont == pause_resp:
+            break
 #cleanup
 et.finishExperiment(win,data_logger,sort='lazy',show_results=True)

@@ -14,23 +14,24 @@ def prepDirectories():
         if not os.path.exists(arg):
               os.makedirs(arg)   
 
-def captureResponse(mode='meg',keys = ['m',None],timeout=1):
+def captureResponse(mode='meg',keys = ['m',None]):
     """
     Depending on the machine the experiment is running on, it either captures response from
     parallel port (mode='meg'), randomly (mode='dummy') or by key press (keyboard)
     """    
     if mode=='meg':
         return os.system("/usr/local/bin/pin 0x379")
-    elif mode=='dummy':
-        core.wait(timeout)
-        return random.choice(keys)
     elif mode=='keyboard':
-        t0=core.getTime()
-        event.clearEvents()
-        while core.getTime()-t0<timeout:
-            resp = event.getKeys()
-            if len(resp)>0 and resp[-1] in keys: return resp[-1]
-        return resp   
+        resp = event.getKeys()
+        if len(resp)>0: return resp[-1]
+        return None   
+
+def drawCompositeStim(stim_list):
+    """
+    Convenience function for readability. Loops over the list and draws all of it. 
+    """
+    for stim in stim_list:
+        stim.draw()
 
 def fancyFixDot(window,bg_color,fg_color='white',size=30):
     """
@@ -67,7 +68,7 @@ class Logger(object):
     A class to set up a data logger file, log the data, and store the data as a panda dataframe
     csv file
     """
-    def __init__(self,outpath,nameDict):
+    def __init__(self,outpath,nameDict,first_columns):
         self.columns = nameDict.keys()
         self.outpath= outpath
         self.outdir= os.path.dirname(outpath)
@@ -78,6 +79,7 @@ class Logger(object):
         self.data = pd.DataFrame(columns=self.columns)
         self.defaultTrial = nameDict
         self.curRowIdx = 0
+        self.first_columns = first_columns
 
     def updateDefaultTrial(self,key,value):
         self.defaultTrial[key]= value
@@ -95,7 +97,7 @@ class Logger(object):
             self.data = self.data[sorted(self.data.columns.tolist())]
         elif sort == 'lazy':
             self.data = self.data[sorted(self.data.columns.tolist())]
-            first = ['name','exp_id','sub_id','sess_id','trial_count','block_no','miniblock_no','trial_no','context','condition','correct','resp_time','total_correct','total_reward']
+            first = self.first_columns
             try:
                 new_order = first + list(self.data.columns.drop(first))
             except KeyError as e:

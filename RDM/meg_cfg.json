@@ -8,7 +8,7 @@
     "fullscreen":1,
     "sess_type":"meg",
     "resp_mode":"meg",
-    "run_mode":"dummy",
+    "run_mode":"sub",
     "bg_color":[-0.9,-0.9,-0.9],
     "fg_color":[0.85,0.85,0.85],
     "win_size":[1280,1024],
@@ -25,7 +25,7 @@
     "coherence_lvl":[0.016, 0.032, 0.064, 0.128, 0.256, 0.512],
     "resp1_button":51200,
     "resp2_button":53248,
-    "pause_button":53000,
+    "pause_button":51200,
     "resp1_key":"left",
     "resp2_key":"right",
     "pause_key":"space",
@@ -61,4 +61,5 @@
     "blockStart":"Block {} kann jetzt beginnen!\nDrücke die Starttaste um weiter zu machen.",
     "blockEnd":"Block {} ist vorbei!\nDu hast in dieser Runde {:d}% aller Trials richtig beantwortet.\nNimm dir eine kleine Pause.",
     "logFile":"sub-{:02d}_sess-{:02d}_RDM_{}.log",
-    "output_file":"sub-{:02d}_sess-{:02d}_RDM_{}.csv"}
+    "output_file":"sub-{:02d}_sess-{:02d}_RDM_{}.csv",
+    "first_columns":["name","exp_id","sub_id","sess_id","trial_count","block_no","trial_no","cur_coherence","cur_dir","correct","resp_time","total_correct"]}
