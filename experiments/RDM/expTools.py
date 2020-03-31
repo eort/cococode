@@ -1,9 +1,6 @@
 from psychopy import visual,event,core,logging
 import pandas as pd
 import os
-import anal
-import random
-from IPython import embed as shell
 
 def prepDirectories():
     """
@@ -13,6 +10,7 @@ def prepDirectories():
     for arg in dirs:
         if not os.path.exists(arg):
               os.makedirs(arg)   
+
 
 def captureResponse(mode='meg',keys = ['m',None]):
     """
@@ -36,7 +34,6 @@ def drawCompositeStim(stim_list):
 def fancyFixDot(window,bg_color,fg_color='white',size=30):
     """
     Objectively the best fixation dot: https://www.sciencedirect.com/science/article/pii/S0042698912003380
-    No costumization implemented
     """
     # define two circles and a cross
     bigCircle = visual.Circle(win=window, size=size,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color)
@@ -50,6 +47,7 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
     window.close()
     dataLogger.write2File(sort=sort)
     if show_results:
+        import anal
         anal.runAnal(dataLogger.outpath)
     core.quit()
 

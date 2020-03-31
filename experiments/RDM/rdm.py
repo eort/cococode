@@ -85,7 +85,10 @@ trial_info['output_file'] = output_file
 ###########################################
 
 # prepare coherence levels of dots
-coherence_lvls = param['coherence_lvl']   
+if trial_info['sess_type'] != 'practice':
+    coherence_lvls = param['coherence_lvl']  
+else:
+    coherence_lvls = [0.2+coh for coh in param['coherence_lvl']]
 n_cohs = len(coherence_lvls)
 
 if param['resp_mode'] == 'meg':
@@ -98,7 +101,7 @@ else:
     pause_resp = param['pause_key']
 resp_keys = [resp_left,resp_right]
 # make a sequence of fix-stim jitter
-fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sleep_range, size=(n_blocks,n_trials))
+fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sleep_range, size=(n_blocks,n_trials+param['n_zero']))
 
 ################################
 ###  START ACTUAL EXPERIMENT ###
@@ -117,8 +120,10 @@ event.clearEvents()
 startBlock = visual.TextStim(win,text=param["blockStart"],color='white',wrapWidth=win.size[0])
 endBlock = visual.TextStim(win,text=param["blockEnd"],color='white',wrapWidth=win.size[0])
 endExp = visual.TextStim(win,text=param["exp_outro"],color='white',wrapWidth=win.size[0])
-fixDot = et.fancyFixDot(win, fg_color = param['fg_color'],bg_color = param['bg_color']) # fixation dot
+warning = visual.TextStim(win,text=param["warning"],color='white',wrapWidth=win.size[0])
+fixDot = et.fancyFixDot(win, fg_color = param['fg_color'],bg_color = param['bg_color']) 
 cloud = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle')
+noise = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',coherence=0)
 timeout_scr = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
 
 # convert timing to frames
@@ -131,14 +136,17 @@ feed_frames = round(param['feed_sleep']*param['framerate'])
 for block_no in range(n_blocks):
     # create trial sequence
     trial_seq = np.tile(np.arange(n_cohs),int(n_trials/n_cohs))
+    
+    # add zero-coherence trials
+    trial_seq = np.concatenate((trial_seq,np.ones(param['n_zero'],dtype=int)*n_cohs)) 
+
     # make sure no direction repetitions of coherence levels
     np.random.shuffle(trial_seq)
-    if not trial_info['sess_type']:
-        while 0 in np.diff(trial_seq):
-            np.random.shuffle(trial_seq)
+    while 0 in np.diff(trial_seq):
+        np.random.shuffle(trial_seq)
 
     # make sure every coherence lvl is matched with both directions equal number of times
-    dir_list = [0,1]*int(n_trials/2/n_cohs)
+    dir_list = [-1,1]*int(n_trials/2/n_cohs)
     dir_dict = {}
     for coh in range(n_cohs):
         np.random.shuffle(dir_list)
@@ -147,10 +155,19 @@ for block_no in range(n_blocks):
     # define direction sequence
     _dir_seq = []
     for coh in trial_seq:
-        _dir_seq.append(dir_dict[coh].pop())
+        # allow for the option of having zero-coherence trials
+        if coh == n_cohs:
+            _dir_seq.append(0)
+        else:
+            _dir_seq.append(dir_dict[coh].pop())
+    
+    # add zero-coherence trials
+    if param['n_zero']:
+        coherence_lvls.append(0)
+        n_trials = param['n_trials'] + param['n_zero'] 
 
-    dir_seq = [param['dir1'] if i==0 else param['dir2']  for i in _dir_seq ]
-    corr_resp_seq = [resp_left if i==0 else resp_right  for i in _dir_seq]
+    dir_seq = [param['dir1'] if i==-1 else param['dir2'] if i==1 else 0  for i in _dir_seq]
+    corr_resp_seq = [resp_left if i==-1 else resp_right  if i==1 else None for i in _dir_seq]
     coh_seq = [coherence_lvls[i] for i in trial_seq ]
     
     # reset block variables
@@ -192,32 +209,48 @@ for block_no in range(n_blocks):
         trial_info['trial_count']+=1
         # set specific orientations
         trial_info['corr_resp'] = corr_resp_seq[trial_no]
-        trial_info['cur_dir'] = dir_seq[trial_no]
-        trial_info['cur_coherence'] = coh_seq[trial_no]     
+        trial_info['cur_coherence'] = coh_seq[trial_no]  
+        trial_info['cur_dir'] = dir_seq[trial_no]   
         # draw RDK stimulus
         cloud.coherence = trial_info['cur_coherence']
-        cloud.dir = trial_info['cur_dir']
+        if param['n_zero']:
+            cloud.dir = trial_info['cur_dir']
+        else:
+            cloud.dir = None
 
         # start trial and draw fixation and wait for 
         et.drawCompositeStim(fixDot)
-        trial_info['start_trial_time'] =win.flip()       
-        # send triggers
-        et.sendTriggers(trigger['trial_on'],mode=param['resp_mode'])
-        for frame in range(fix_frames):
+        trial_info['start_trial_time'] =win.flip()  
+        et.sendTriggers(trigger['fix_on'],mode=param['resp_mode'])   
+        for frame in range(feed_frames):
             et.drawCompositeStim(fixDot)
+            trial_info['end_fix_time'] = win.flip()
+        # show noise stimulus
+        et.drawCompositeStim(fixDot+[noise])
+        trial_info['start_noise_time'] =win.flip()       
+        # send triggers
+        et.sendTriggers(trigger['noise_on'],mode=param['resp_mode'])
+        for frame in range(fix_frames):
+            et.drawCompositeStim(fixDot+[noise])
             trial_info['start_stim_time']=win.flip()  
 
         trial_info['fixDur']= core.getTime()-trial_info['start_trial_time']
-               
+
         if param['resp_mode']=='keyboard':
             event.clearEvents()
- 
+        else:
+            # check whether a button in the response box is currently pressed & present a warning if so
+            while et.captureResponse(mode=param['resp_mode'],keys=resp_keys) in resp_keys:
+                trial_info['start_stim_time']=win.flip()
+                if trial_info['start_stim_time']-t0>1.0:
+                    warning.draw()
+                    win.flip()
+
         # present stims
-        et.drawCompositeStim(fixDot)
-        cloud.draw()
+        et.drawCompositeStim(fixDot + [cloud])
         trial_info['start_stim_time'] = win.flip()
         # send triggers
-        et.sendTriggers(trigger['coh_{}_{}'.format(trial_info['cur_dir'],coherence_lvls.index(cloud.coherence)+1)],mode=param['resp_mode'])
+        et.sendTriggers(trigger['coh_{}_{}'.format(trial_info['cur_dir'],coherence_lvls.index(trial_info['cur_coherence'])+1)],mode=param['resp_mode'])
 
         # do it framewise rather than timeout based
         resp_frames = round((param['resp_timeout']-(core.getTime()-trial_info['start_stim_time']))*param['framerate'])
@@ -227,13 +260,11 @@ for block_no in range(n_blocks):
             dummy_resp_frame = np.random.choice(range(resp_frames))
         for frame in range(resp_frames):        
             if frame<stim_frames:
-                et.drawCompositeStim(fixDot)
-                cloud.draw()
+                et.drawCompositeStim(fixDot + [cloud])
                 trial_info['end_stim_time'] =win.flip()    
             else:
                 if frame==stim_frames:
                     trial_info['end_stim_time'] = core.getTime()
-                    et.sendTriggers(trigger['stim_off'],mode=param['resp_mode'])
                 et.drawCompositeStim(fixDot)
                 win.flip()
 
@@ -247,9 +278,6 @@ for block_no in range(n_blocks):
 
             # break if go
             if response in resp_keys:
-                core.wait(0.01)
-                if frame < stim_frames:
-                    et.sendTriggers(trigger['stim_off'],mode=param['resp_mode'])
                 break  
         time_response = core.getTime()
 
@@ -272,7 +300,6 @@ for block_no in range(n_blocks):
                 timeout_scr.draw()
                 trial_info['end_feed_time'] = win.flip()
             
-            et.sendTriggers(trigger['timeout_off'],mode=param['resp_mode'])
             trial_info['feedbackDur'] = trial_info['end_feed_time']-time_response
 
         if trial_info['correct']:
@@ -280,7 +307,6 @@ for block_no in range(n_blocks):
         
         # send triggers
         trial_info['end_trial_time'] = core.getTime()
-        et.sendTriggers(trigger['trial_off'],mode=param['resp_mode'])
         
         # logging
         if trial_info['trial_count'] == 1:
@@ -288,7 +314,6 @@ for block_no in range(n_blocks):
         data_logger.writeTrial(trial_info)
 
     # send triggers
-    et.sendTriggers(trigger['block_off'],mode=param['resp_mode'])
     if param['resp_mode']=='keyboard':
         event.clearEvents()
     # show text at the end of a block 
@@ -297,7 +322,8 @@ for block_no in range(n_blocks):
         for frame in range(pause_frames):
             endBlock.draw()
             win.flip() 
-
+        if param['resp_mode']=='keyboard':
+                event.clearEvents()
 # end of experiment message
 if param['run_mode'] != 'dummy':
     while True:
