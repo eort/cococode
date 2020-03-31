@@ -130,7 +130,7 @@ feed_frames = round(param['feed_sleep']*param['framerate'])
 ###########################
 for block_no in range(n_blocks):
     # create trial sequence
-    trial_seq = np.tile(np.arange(n_cohs),int(n_trials/n_cohs) )
+    trial_seq = np.tile(np.arange(n_cohs),int(n_trials/n_cohs))
     # make sure no direction repetitions of coherence levels
     np.random.shuffle(trial_seq)
     if not trial_info['sess_type']:

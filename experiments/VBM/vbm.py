@@ -75,7 +75,7 @@ output_file = os.path.join('dat',param['exp_id'],param['output_file'].format(inp
 trial_info = {"sub_id":input_dict['sub_id'],
                 "sess_id":input_dict['sess_id'],
                 "sess_type":input_dict['sess_type'],
-                'total_euro':0,
+                'total_points':0,
                 "start_exp_time":core.getTime(),
                 "end_block_time":np.nan}
 # add variables to the logfile that are defined in config file
@@ -157,6 +157,7 @@ feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,pr
 ####################
 for block_no in range(n_blocks):
     trial_info['block_no']=block_no+1
+    
     # start block message
     if param['run_mode'] != 'dummy':
         while True:
@@ -257,8 +258,7 @@ for block_no in range(n_blocks):
         trial_info['resp_time'] = trial_info['start_select_time']-trial_info['start_stim_time']
         trial_info['resp_key'] = response
         trial_info['correct'] = int(response==trial_info['corr_resp'])
-        trial_info['total_correct'] += trial_info['correct']
-
+        
         if trial_info['resp_key'] == resp_keys[0]:
             selectbar.pos = [-param['select_x'], -0.1*param['select_height']]
         elif trial_info['resp_key'] == resp_keys[1]:
@@ -288,7 +288,7 @@ for block_no in range(n_blocks):
             reward = trial_info['mag_left']
         elif trial_info['resp_key']==resp_keys[1] and trial_info['rew_right']:
             reward = trial_info['mag_right']
-        trial_info['total_euro'] += reward
+        trial_info['total_points'] += reward
         
         # show update bar
         progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.75*reward,progress_bar_start.pos[1])
@@ -329,22 +329,20 @@ for block_no in range(n_blocks):
         data_logger.writeTrial(trial_info)
 
     # end of block message
-    trial_info['end_prev_block_time'] = core.getTime()
-
-    # send triggers
     et.sendTriggers(trigger['end_block'],mode=param['resp_mode'])
     if param['resp_mode']=='keyboard':
         event.clearEvents()
     # show text at the end of a block 
     if param['run_mode'] != 'dummy':      
-        endBlock.text = param["endBlock_text"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
+        endBlock.text = param["endBlock_text"].format(block_no+1,trial_info['total_points'])
         for frame in range(pause_frames):
             endBlock.draw()
             win.flip() 
-
+    # clear any pending key presses
+    event.clearEvents()
 # end of experiment message
 if param['run_mode'] != 'dummy':
-    endExp.text = param["endExp_text"].format(trial_info['total_euro']/1000)
+    endExp.text = param["endExp_text"].format(trial_info['total_points'])
     while True:
         endExp.draw()
         win.flip()
