@@ -9,7 +9,6 @@ import sys, os # to interact with the operating system
 from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
-from IPython import embed as shell # for debugging
 import pandas as pd # efficient table operations
 
 # reset all triggers to zero
@@ -314,16 +313,18 @@ for block_no in range(n_blocks):
         else:
             rightbar.fillColor = bar['incorr_color']
  
-        et.drawCompositeStim(feedback_phase)
-        trial_info['start_feed_time'] = win.flip()
-        et.sendTriggers(trigger['start_feed'],mode=param['resp_mode'])
-        for frame in range(feed_frames):
+        if trial_info['timeout'] ==0:
+            trial_info['start_feed_time'] = core.getTime()
             et.drawCompositeStim(feedback_phase)
-            win.flip()
+            trial_info['start_feed_time'] = win.flip()
+            et.sendTriggers(trigger['start_feed'],mode=param['resp_mode'])
+            for frame in range(feed_frames):
+                et.drawCompositeStim(feedback_phase)
+                win.flip()
         trial_info['end_trial_time'] = core.getTime()
         trial_info['feedDur'] =  trial_info['end_trial_time']-trial_info['start_feed_time']
-        
-        # logging
+            
+            # logging
         if trial_info['trial_count'] == 1:
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = param['first_columns'])
         data_logger.writeTrial(trial_info)
@@ -334,7 +335,7 @@ for block_no in range(n_blocks):
         event.clearEvents()
     # show text at the end of a block 
     if param['run_mode'] != 'dummy':      
-        endBlock.text = param["endBlock_text"].format(block_no+1,trial_info['total_points'])
+        endBlock.text = param["endBlock_text"].format(block_no+1,int(trial_info['total_points']))
         for frame in range(pause_frames):
             endBlock.draw()
             win.flip() 
@@ -350,4 +351,4 @@ if param['run_mode'] != 'dummy':
         if cont == pause_resp:
             break
 #cleanup
-et.finishExperiment(win,data_logger,show_results=True)
+et.finishExperiment(win,data_logger,show_results=param['show_results'])

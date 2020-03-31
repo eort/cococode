@@ -28,6 +28,7 @@
     "sequence":"VBM_TrialStruc_Corona#1.csv",
     "reward_step":0.02,
     "trial_count":0,
+    "show_results": true,
     "endExp_text":"Das war's!\nDu hast {} Punkte gewonnen.\nVielen Dank für deine Teilnahme.",
     "startBlock_text":"Block {} kann jetzt beginnen!\nDrücke die Starttaste um weiter zu machen.",
     "endBlock_text":"Block {} ist vorbei!\nDu hast in dieser Runde {} Punkte gewonnen.\nNimm dir eine kleine Pause.",
