@@ -48,12 +48,11 @@
                     "horiz_dist":500,
                     "vert_dist":200},   
     "trigger":{ "start_block":1,
-                    "end_block":2,
-                    "start_trial":4,
-                    "start_stim":8,
-                    "start_select":16,
-                    "start_feed":32,
-                    "timeout":64,
+                    "start_trial":2,
+                    "start_stim":4,
+                    "start_select":8,
+                    "start_feed":16,
+                    "timeout":32,
                     "resp_left":51200,
                     "resp_right":53248}
 }

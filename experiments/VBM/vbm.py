@@ -219,8 +219,16 @@ for block_no in range(n_blocks):
             et.drawCompositeStim(fix_phase)
             trial_info['start_stim_time']=win.flip()  
         trial_info['fixDur'] =  core.getTime()-trial_info['start_trial_time']
-        # clear any pending key presses
-        event.clearEvents()
+        
+        # check whether a button in the response box is currently pressed & present a warning if so
+        if param['resp_mode']=='keyboard':
+            event.clearEvents()
+        elif param['resp_mode']=='meg':
+            while et.captureResponse(mode=param['resp_mode'],keys=resp_keys) in resp_keys:
+                trial_info['start_stim_time']=win.flip()
+                if trial_info['start_stim_time']-t0>1.0:
+                    warning.draw()
+                    win.flip()
 
         # do it framewise rather than timeout based       
         if param['run_mode']=='dummy':
@@ -330,7 +338,6 @@ for block_no in range(n_blocks):
         data_logger.writeTrial(trial_info)
 
     # end of block message
-    et.sendTriggers(trigger['end_block'],mode=param['resp_mode'])
     if param['resp_mode']=='keyboard':
         event.clearEvents()
     # show text at the end of a block 
