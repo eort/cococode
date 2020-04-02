@@ -1,7 +1,7 @@
 {
-    "name":"vbm",
-    "version":"1.1",
-    "exp_id":"pilot_v4",
+    "name":"ml",
+    "version":"0.2",
+    "exp_id":"pilot",
     "sess_type":"meg",
     "n_blocks":2,
     "n_trials":200,
