@@ -12,7 +12,7 @@ For more info on how to manage environments, please check the [conda documentati
 
 **Running experiment**
 
-To run an experiment, you need to run python with the experiment and a configuration file from within the root folder of that experiment. For example, to run the value-based decision making task, you first need to navigate to VBM (if you are in the root folder of this repository you can run`cd ./experiments/VBM`) and then run the experiment: `python vbm.py meg_cfg.json`. Note, if you have closed the terminal after you have installed the environment (see above), you need to activate the environment again. 
+If you have not already done so, download the experiment folder of the experiment that you want to run. Next, you need to run python with the experiment and a configuration file from within the root folder of that experiment. For example, to run the value-based decision making task, you first need to navigate to VBM (if you are in the root folder of this repository you can run`cd ./experiments/VBM`) and then run the experiment: `python vbm.py meg_cfg.json`. Note, if you have closed the terminal after you have installed the environment (see above), you need to activate the environment again. 
 
 # Experiments
  Includes code and other files necessary to run the respective experiments
