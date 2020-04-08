@@ -9,7 +9,7 @@ import sys, os # to interact with the operating system
 from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
-from IPython import embed as shell # for debugging
+#from IPython import embed as shell # for debugging
 
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
@@ -295,6 +295,7 @@ for block_no in range(n_blocks):
             trial_info['timeout'] = 0
         else:
             trial_info['timeout'] = 1
+            print(1)
             et.sendTriggers(trigger['timeout_on'],mode=param['resp_mode'])
             for frame in range(feed_frames):
                 timeout_scr.draw()
