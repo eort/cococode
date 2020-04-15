@@ -2,7 +2,7 @@
 #######################
 ###  import libraries  ###
 #######################
-from psychopy import visual, core, event,gui,logging #import some libraries from PsychoPy
+from psychopy import visual, core, event,gui,logging, prefs #import some libraries from PsychoPy
 import expTools as et # custom scripts
 import json # to load configuration files
 import sys, os # to interact with the operating system
@@ -10,7 +10,8 @@ from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
 #from IPython import embed as shell # for debugging
-
+prefs.hardware['audioLib'] = ['pyo']
+from psychopy import sound
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
 #######################################
@@ -37,13 +38,15 @@ n_blocks = param['n_blocks']            # number total blocks
 fix_sleep_mean = param['fix_mean']      # presentation duration of fixdot
 fix_sleep_range = param['fix_range']    # presentation duration of fixdot
 feed_sleep = param['feed_sleep']        # presentation duration of feedback
-sess_type = param['sess_type']            # are we practicing or not
+sess_type = param['sess_type']          # are we practicing or not
 trigger = param['trigger']              # trigger for defined events
 rdk = param['cloud_specs']              # info on RDK
 
 # dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
-inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
+input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type,noise_duration=fix_sleep_mean)
+inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type',"noise_duration"])
+
+fix_sleep_mean = input_dict['noise_duration']
 # check for input
 if inputGUI.OK == False:
     print("Experiment aborted by user")
@@ -115,6 +118,7 @@ event.clearEvents()
 #########################
 ###  prepare stimuli  ###
 #########################
+sound = sound.Sound('A',secs = 0.05)
 
 # first all kind of structural messages
 startBlock = visual.TextStim(win,text=param["blockStart"],color='white',wrapWidth=win.size[0])
@@ -122,6 +126,11 @@ endBlock = visual.TextStim(win,text=param["blockEnd"],color='white',wrapWidth=wi
 endExp = visual.TextStim(win,text=param["exp_outro"],color='white',wrapWidth=win.size[0])
 warning = visual.TextStim(win,text=param["warning"],color='white',wrapWidth=win.size[0])
 fixDot = et.fancyFixDot(win, fg_color = param['fg_color'],bg_color = param['bg_color']) 
+if param['cue'] == 'fix':
+    fixCue = et.fancyFixDot(win, fg_color = param['fg_color'],bg_color = param['bg_color'],size =36) 
+else:
+    fixCue = fixDot
+
 cloud = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle')
 noise = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',coherence=0)
 timeout_scr = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
@@ -247,7 +256,9 @@ for block_no in range(n_blocks):
                     win.flip()
 
         # present stims
-        et.drawCompositeStim(fixDot + [cloud])
+        et.drawCompositeStim(fixCue + [cloud])
+        if param['cue'] == 'tone':
+            sound.play()
         trial_info['start_stim_time'] = win.flip()
         # send triggers
         et.sendTriggers(trigger['coh_{}_{}'.format(trial_info['cur_dir'],coherence_lvls.index(trial_info['cur_coherence'])+1)],mode=param['resp_mode'])
@@ -260,7 +271,7 @@ for block_no in range(n_blocks):
             dummy_resp_frame = np.random.choice(range(resp_frames))
         for frame in range(resp_frames):        
             if frame<stim_frames:
-                et.drawCompositeStim(fixDot + [cloud])
+                et.drawCompositeStim(fixCue + [cloud])
                 trial_info['end_stim_time'] =win.flip()    
             else:
                 if frame==stim_frames:
@@ -295,7 +306,6 @@ for block_no in range(n_blocks):
             trial_info['timeout'] = 0
         else:
             trial_info['timeout'] = 1
-            print(1)
             et.sendTriggers(trigger['timeout_on'],mode=param['resp_mode'])
             for frame in range(feed_frames):
                 timeout_scr.draw()
