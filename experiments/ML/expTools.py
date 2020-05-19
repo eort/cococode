@@ -6,7 +6,7 @@ def prepDirectories():
     """
     make folders that are expected to exist
     """
-    dirs = ['log','dat']
+    dirs = ['log','dat','settings']
     for arg in dirs:
         if not os.path.exists(arg):
               os.makedirs(arg)   
@@ -67,7 +67,7 @@ class Logger(object):
     """
     def __init__(self,outpath,nameDict,first_columns):
         self.columns = nameDict.keys()
-        self.outpath= outpath
+        self.outpath= outpath # response variables of experimental session
         self.outdir= os.path.dirname(outpath)
 
         if len(self.columns)!=len(set(self.columns)):

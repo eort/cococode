@@ -12,7 +12,7 @@ import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
 from IPython import embed as shell # for debugging
 import pandas as pd # efficient table operations
-
+import itertools as it
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
 #######################################
@@ -35,21 +35,21 @@ except FileNotFoundError as e:
 ###########################################
 
 # read out json sidecar
-n_trials = param['n_trials']            # number trials per block
-trials_miniblocks = param['trials_miniblocks']    # number of blocks in each blocktype
-n_blocks = param['n_blocks']            # number total blocks
-fix_mean = param['fix_mean']            # presentation duration of fixdot
-fix_range = param['fix_range']          # presentation duration of fixdot
-select_mean = param['select_mean']          # presentation duration of selection box
-select_range = param['select_range']        # presentation duration of selection box
-feed_sleep = param['feed_sleep']        # presentation duration of feedback
-sess_type = param['sess_type']          # are we practicing or not
-trigger = param['trigger']              # trigger for defined events
-bar = param['progress_bar']              # trigger for defined events
-
+timing_info =param['timing_info']                 # information on the timings of the sequence
+stim_info=param['stim_info']                      # information on all stimuli to be drawn
+win_info=param['win_info']                        # information on the psychopy window  
+response_info=param['response_info']              # information on response collection  
+reward_info=param['reward_info']                  # Information on the reward schedule
+logging_info=param['logging_info']                # information on files and variables for logging
+trigger_info = param['trigger_info']              # information on all the MEG trigger values and names
+n_trials = param['n_trials']                      # number trials per block
+n_blocks = param['n_blocks']                      # number total blocks
+sess_type = param['sess_type']                    # are we practicing or not
+bar = stim_info['progress_bar']                   # make drawing the progressbar less of a pain
 # dialog with participants: Retrieve Subject number, session number, and practice
 input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
 inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
+
 # check for input
 if inputGUI.OK == False:
     print("Experiment aborted by user")
@@ -68,88 +68,127 @@ if sess_type!=input_dict['sess_type']:
 
 # prepare the logfile (general log file, not data log file!) and directories
 et.prepDirectories()
-log_file = os.path.join('log',param['log_file'].format(input_dict['sub_id'],input_dict['sess_id'],datetime.now()).replace(' ','-').replace(':','-'))
+logFileID = str(datetime.now()).replace(' ','-').replace(':','-')
+log_file = os.path.join('log',logging_info['skeleton_file']+'.log').format(input_dict['sub_id'],input_dict['sess_id'],logFileID)
 lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # create a output file that collects all variables 
-output_file = os.path.join('dat',param['exp_id'],param['output_file'].format(input_dict['sub_id'],input_dict['sess_id'],datetime.now()).replace(' ','-').replace(':','-'))
+output_file = os.path.join('dat',param['exp_id'],logging_info['skeleton_file']+'.csv').format(input_dict['sub_id'],input_dict['sess_id'],logFileID)
+# save the current settings per session, so that the data files stay slim
+settings_file = os.path.join('settings',param['exp_id'],logging_info['skeleton_file']+'.json').format(input_dict['sub_id'],input_dict['sess_id'],logFileID)
+if not os.path.exists(os.path.dirname(settings_file)): 
+    os.makedirs(os.path.dirname(settings_file))
+os.system('cp {} {}'.format(jsonfile,settings_file))
 
+#shell()
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
                 "sess_id":input_dict['sess_id'],
                 "sess_type":input_dict['sess_type'],
                 'total_points':0,
+                'block_no':0,
+                'logFileID':logFileID,
                 "start_exp_time":core.getTime(),
                 "end_block_time":np.nan}
 # add variables to the logfile that are defined in config file
-for vari in param['logVars']:
+for vari in logging_info['logVars']:
     trial_info[vari] = param[vari]
-trial_info['log_file'] = log_file
-trial_info['output_file'] = output_file
 
-if param['resp_mode'] == 'meg':
-    resp_left = param['resp1_button']
-    resp_right = param['resp2_button']
-    pause_resp = param['pause_button']
+if response_info['resp_mode'] == 'meg':
+    resp_left = response_info['resp1_button']
+    resp_right = response_info['resp2_button']
+    pause_resp = response_info['pause_button']
 else:
-    resp_left = param['resp1_key']
-    resp_right = param['resp2_key']
-    pause_resp = param['pause_key']
+    resp_left = response_info['resp1_key']
+    resp_right = response_info['resp2_key']
+    pause_resp = response_info['pause_key']
 resp_keys = [resp_left,resp_right]
 
 # convert timing to frames
-pause_frames = round(param['pause_sleep']*param['framerate'])
-feed_frames = round(param['feed_sleep']*param['framerate'])
-resp_frames = round(param['resp_timeout']*param['framerate'])
+pause_frames = round(timing_info['pause_sleep']*win_info['framerate'])
+feed_frames = round(timing_info['feed_sleep']*win_info['framerate'])
+resp_frames = round(timing_info['resp_timeout']*win_info['framerate'])
 
 ###########################################
 ###  Prepare Experimental Sequence     ####
 ###########################################
 
-# load sequence info
-#sequence = pd.read_csv(param['sequence'])
-#sequence.prob1 = 100*sequence.prob1
-#sequence.prob2 = 100*sequence.prob2
-# shuffle
-#sequence = sequence.sample(frac=1).reset_index(drop=True)
+# pick colors for sessions
+color_dict = stim_info['stim_colors']
 
-colors = dict(stable=['blue', 'yellow'], volatile=['purple', 'orange'])
-n_minitrials = dict(stable=param["trials_miniblocks"][:1],volatile=param["trials_miniblocks"][1:])
-n_miniblocks = dict(stable=len(n_minitrials['stable']),volatile=len(n_minitrials['volatile']))
+color_idx = [(x,y,z) for (x,y,z) in it.product(range(3),range(3),range(3)) if x!=y and y!=z and x!=z][trial_info['sub_id']%6]
+colors = stim_info['color_combinations'][color_idx[trial_info['sess_id']-1]]
 
-
-# add check whether total number of trials match
-
-# counterbalance order of environments across participants
-if trial_info['sub_id']%2==0:
-    block_types = ['stable','volatile']
+# counterbalance the order of volatile and stable blocks across subs and sessions
+block_type_order = ['sss','ssv','svs','svv','vss','vsv','vvs','vvv'][trial_info['sub_id']%8] # (v)olatile, (s)table
+start_with = block_type_order[trial_info['sub_id']-1]
+np.random.shuffle(param['volatile_blocks'])
+if start_with == 's':
+    block_types = ['stable']+['volatile']*round(len(param['volatile_blocks']))
+    blocks = param['stable_blocks']+ param['volatile_blocks']
 else:
-    block_types = ['volatile','stable']
+    block_types = ['volatile']*round(len(param['volatile_blocks']))+['stable']
+    blocks = param['volatile_blocks']+param['stable_blocks']
+
+# split for a block 
+reward_ratio = np.array([1]*round(reward_info['high_prob']*5)+[0]*round((1-reward_info['high_prob'])*5))
+reward_ratio_both_sides = np.concatenate((reward_ratio,reward_ratio+2))
+
+trial_seq = []
+magn_seq = []
+for n_trials in blocks:
+    np.array(reward_info['mags'])
+    # where is the target presented
+    target_reward_side = np.repeat(reward_ratio_both_sides,n_trials/len(reward_ratio_both_sides)).tolist()
+    
+    magnitudes = np.array(reward_info['mags'])
+    for reps in range(round(n_trials/len(reward_info['mags']))-1):
+        magnitudes = np.concatenate((magnitudes,reward_info['mags'])).tolist()
+
+    np.random.shuffle(magnitudes)
+    np.random.shuffle(target_reward_side)
+    trial_seq+=target_reward_side
+    magn_seq+=magnitudes
+
+trial_seq = np.array(trial_seq)
+magn_seq = np.array(magn_seq)
+pause_seq = np.arange(0,trial_seq.shape[0],60)
+color_seq = [colors, colors[::-1]]*round(len(block_types)/2)
+# 0,1 target is on left, 2,3 target is on right
+target_side_seq = [resp_keys[0] if i in [0,1] else resp_keys[1] for i in trial_seq]
+# 0, 2 the high likely target won't get reward, 1,3 the high likely target will get reward
+reward_validity_seq = ['valid' if i in [1,3] else 'invalid' for i in trial_seq]
+
+# make a sequence of fix-stim jitter
+fix_seq = np.random.uniform(timing_info['fix_mean']-timing_info['fix_range'],timing_info['fix_mean']+timing_info['fix_range'], size=trial_seq.shape)
+fix_frames_seq = (fix_seq*win_info['framerate']).round().astype(int)
+select_seq = np.random.uniform(timing_info['select_mean']-timing_info['select_range'],timing_info['select_mean']+timing_info['select_range'], size=trial_seq.shape)
+select_frames_seq = (select_seq*win_info['framerate']).round().astype(int)
 
 ####################
 ###  experiment  ###
 ####################
 #create a window
-win = visual.Window(size=param['win_size'],color=param['bg_color'],fullscr=trial_info['fullscreen'], units="pix",screen=1)
+win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscreen'], units="pix",screen=1)
 
 #########################
 ###  prepare stimuli  ###
 #########################
-startBlock = visual.TextStim(win,text=param['startBlock_text'],color=param['fg_color'],wrapWidth=win.size[0])
-endBlock = visual.TextStim(win,text= param['endBlock_text'],color=param['fg_color'],wrapWidth=win.size[0])
-endExp = visual.TextStim(win,text=param['endExp_text'],color=param['fg_color'],wrapWidth=win.size[0])
+startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
+endBlock = visual.TextStim(win,text= stim_info['endBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
+endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 progress_bar =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
 progress_update =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
 progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
 progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
-fixDot = et.fancyFixDot(win, bg_color = param['bg_color']) 
-leftframe = visual.Rect(win,width=param['select_width'],height=param['select_height'],lineColor=param['fg_color'],fillColor=param['bg_color'],pos = [-param['select_x'],param['select_y']])
-rightframe = visual.Rect(win,width=param['select_width'],height=param['select_height'],lineColor=param['fg_color'],fillColor=param['bg_color'],pos = [param['select_x'],param['select_y']])
-leftbar = visual.Rect(win,width=param['select_width'],height=param['select_height'],lineColor=param['fg_color'],fillColor=param['fg_color'],pos = [-param['select_x'],param['select_y']])
-rightbar = visual.Rect(win,width=param['select_width'],height=param['select_height'],lineColor=param['fg_color'],fillColor=param['fg_color'],pos = [param['select_x'],param['select_y']])
-selectbar = visual.Rect(win,width=param['select_width']*1.2,height=param['select_height']*1.5,lineColor=param['fg_color'],fillColor=param['bg_color'],lineWidth=param['lineWidth'],pos = [param['select_x'],-0.1*param['select_height']])
-leftProb = visual.TextStim(win,text='',color=param['fg_color'], pos = [-param['select_x'],-param['select_x']] )
-rightProb = visual.TextStim(win,text='',color=param['fg_color'], pos = [param['select_x'],-param['select_x']])
+fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color']) 
+leftbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],pos = [-stim_info['box_x'],stim_info['box_y']])
+rightbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],pos = [stim_info['box_x'],stim_info['box_y']])
+selectbox = visual.Rect(win,width=stim_info['box_edge']*1.2,height=stim_info['box_edge']*1.2,lineColor=win_info['fg_color'],lineWidth=stim_info['lineWidth'])
+leftMag = visual.TextStim(win,color=win_info['fg_color'], pos = [-stim_info['box_x'],stim_info['box_y']] )
+rightMag = visual.TextStim(win,color=win_info['fg_color'], pos = [stim_info['box_x'],stim_info['box_y']])
 timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
+smiley = visual.ImageStim(win,'smiley.png',contrast=-1,size=[50,50]) # good feedback
+frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[50,50]) # bad feedback
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -157,242 +196,205 @@ event.clearEvents()
 
 # experimental phases (unique things on screen)
 fix_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end]
-stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftframe,rightframe,leftbar,rightbar,leftProb,rightProb]
-select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbar,rightframe,leftframe,leftbar,rightbar,leftProb,rightProb]
-feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbar,rightframe,leftframe,leftbar,rightbar,leftProb,rightProb]
+stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftbox,rightbox,leftMag,rightMag]
+select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbox,leftbox,rightbox,leftMag,rightMag]
+feedback_phase = [progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbox,leftbox,rightbox,leftMag,rightMag]
 
 ####################
-###  block loop  ###
+###  trial loop  ###
 ####################
-for block_no,block in enumerate(block_types):
-    trial_info['block_type'] = block
-    trial_info['block_correct'] = 0
+for trial_no in range(trial_seq.shape[0]):
     # start block message
-    if param['run_mode'] != 'dummy':
-        while True:
-            startBlock.text = param["startBlock_text"].format(block_no+1)
-            startBlock.draw()
-            trial_info['start_block_time'] = win.flip()                        
-            cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
-            if cont == pause_resp:
-                break
-        et.sendTriggers(trigger['start_block'],mode=param['resp_mode'])
-    
-    
-    # get trial info for entire block
-    color_idx = 1
-    for n_rev in range(n_miniblocks[block]):
-        minitrials_no = n_minitrials[block][n_rev]
-        trial_seq = np.ones(minitrials_no,dtype=int)
-        trial_seq[:int(param['norew_prob']*minitrials_no)] = 0
-        np.random.shuffle(trial_seq)
-        zeros = np.where(trial_seq==0)[0]
-        ones = np.where(trial_seq==1)[0]
-        left_0,right_0 = np.random.choice(zeros,(zeros.shape[0]//2,2),replace=False).T
-        left_1,right_1 = np.random.choice(ones,(ones.shape[0]//2,2),replace=False).T
-        right =np.union1d(right_0,right_1)
-        left =np.union1d(left_0,left_1)
-        pos_seq = np.zeros(trial_seq.shape,dtype=int)
-        pos_seq[right] = 1
+    if response_info['run_mode'] != 'dummy':
+        if trial_no in pause_seq:
+            trial_info['block_type'] = block_types[trial_info['block_no']]
+            trial_info['block_length'] = blocks[trial_info['block_no']]
+            high_prob_color = color_seq[trial_info['block_no']][0]
+            low_prob_color = color_seq[trial_info['block_no']][1]
+            trial_info['block_no'] += 1
 
-        color_seq = np.array(trial_seq,dtype=object)
-        color_seq[np.where(color_seq==color_idx^1)[0]] = colors[block][1]
-        color_seq[np.where(color_seq==color_idx)[0]] = colors[block][0]
-        alt_color_seq = np.array(color_seq)
-        alt_color_seq[np.where(color_seq==colors[block][1])[0]] = colors[block][0]
-        alt_color_seq[np.where(color_seq==colors[block][0])[0]] = colors[block][1]
-        color_idx ^=1
+            while True:
+                startBlock.text = stim_info["startBlock_text"].format(trial_info['block_no'])
+                startBlock.draw()
+                trial_info['start_block_time'] = win.flip()                        
+                cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
+                if cont == pause_resp:
+                    break
+            et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
 
-        corr_resp_seq = [resp_keys[0] if i==1 else resp_keys[1] for i in pos_seq]
-        # make a sequence of fix-stim jitter
-        fix_seq = np.random.uniform(fix_mean-fix_range,fix_mean+fix_range, size=(minitrials_no))
-        fix_frames_seq = (fix_seq*param['framerate']).round().astype(int)
-        select_seq = np.random.uniform(select_mean-select_range,select_mean+select_range, size=(minitrials_no))
-        select_frames_seq = (select_seq*param['framerate']).round().astype(int)
-        
-        trial_info['miniblock_no'] = n_rev+1 # counter within each type
-        
-        ####################
-        ###  trial loop  ###
-        ####################
-        for trial_no in range(minitrials_no):
-            print(block_no,n_rev,trial_no)
-            # force quite experiment
-            escape = event.getKeys()
-            if 'q' in escape:
-                et.finishExperiment(win,data_logger)
-    
-            # reset variables
-            reward=0
-            response =None
-            # set trial variables
-            try:
-                trial_info['corr_resp'] = corr_resp_seq[trial_no]
-            except:
-                shell()
-            trial_info['trial_no'] = trial_no+1
-            trial_info['trial_count']+=1
-            trial_info['fix_sleep'] = fix_seq[trial_no]
-            trial_info['select_sleep'] = select_seq[trial_no]
-            trial_info['mag_left'] = np.random.choice(range(1,9))
-            trial_info['mag_right'] = np.random.choice(range(1,9))
-            trial_info['reward_pos'] = pos_seq[trial_no]
-            fix_frames = fix_frames_seq[trial_no]
-            select_frames = select_frames_seq[trial_no]
 
-            selectbar.lineColor = param['fg_color']
-            
-            # set stimulus
-            leftbar.height = 10*trial_info['mag_left']
-            leftbar.pos = [-param['select_x'],-0.5*param['select_height']+5*trial_info['mag_left']]
-            rightbar.height = 10* trial_info['mag_right']
-            rightbar.pos = [param['select_x'],-0.5*param['select_height']+5*trial_info['mag_right']]
-            
-            if pos_seq[trial_no] == 1:
-                rightbar.fillColor = color_seq[trial_no]
-                leftbar.fillColor = alt_color_seq[trial_no]
-            else:
-                leftbar.fillColor = color_seq[trial_no]
-                rightbar.fillColor = alt_color_seq[trial_no]
-            #leftProb.text =  '{:02d}%'.format(int(trial_info['prob_left']))
-            #rightProb.text = '{:02d}%'.format(int(trial_info['prob_right']))
+    # force quite experiment
+    escape = event.getKeys()
+    if 'q' in escape:
+        et.finishExperiment(win,data_logger)
 
-            # fix phase
-            et.drawCompositeStim(fix_phase)
-            trial_info['start_trial_time']=win.flip()
-            et.sendTriggers(trigger['start_trial'],mode=param['resp_mode'])          
-            for frame in range(fix_frames):
-                et.drawCompositeStim(fix_phase)
-                trial_info['start_stim_time']=win.flip()  
-            trial_info['fixDur'] =  core.getTime()-trial_info['start_trial_time']
-            # clear any pending key presses
-            event.clearEvents()
+    # reset variables
+    reward=0
+    response =None
+    selectbox.lineColor = win_info['fg_color']
+    # set trial variables
+    trial_info['corr_resp'] = target_side_seq[trial_no]
+    trial_info['trial_no'] = trial_no+1
+    trial_info['fix_sleep'] = fix_seq[trial_no]
+    trial_info['select_sleep'] = select_seq[trial_no]
+    trial_info['mag_left'] = magn_seq[trial_no][0]
+    trial_info['mag_right'] = magn_seq[trial_no][1]
+    trial_info['high_prob_side'] = target_side_seq[trial_no]
+    trial_info['reward_validity'] = reward_validity_seq[trial_no]
 
-            # do it framewise rather than timeout based       
-            if param['run_mode']=='dummy':
-                dummy_resp_frame = np.random.choice(range(resp_frames+20))
-    
-            # stimulus phase
-            et.drawCompositeStim(stim_phase) 
-            # start response time measure
-            trial_info['start_stim_time'] = win.flip() 
-            et.sendTriggers(trigger['start_stim'],mode=param['resp_mode'])   
-            for frame in range(resp_frames):        
-                if frame==resp_frames:
-                    et.drawCompositeStim(fix_phase)
-                else:
-                    et.drawCompositeStim(stim_phase)
-                trial_info['end_stim_time'] = win.flip()
+    # set stimulus   
+    if trial_info['high_prob_side'] == 'left':
+        rightbox.fillColor = color_dict[high_prob_color]
+        leftbox.fillColor = color_dict[low_prob_color]
+    else:
+        rightbox.fillColor = color_dict[low_prob_color]
+        leftbox.fillColor = color_dict[high_prob_color]
+    leftMag.text =  '{:d}'.format(int(trial_info['mag_left']))
+    rightMag.text = '{:d}'.format(int(trial_info['mag_right']))
 
-                #sample response
-                if param['run_mode']=='dummy':
-                    if dummy_resp_frame == frame:
-                        response = np.random.choice(resp_keys)
-                else:
-                    response = et.captureResponse(mode=param['resp_mode'],keys=resp_keys)
-
-                # break if responded
-                if response in resp_keys:
-                    break  
-
-            ##########################
-            ###  POST PROCESSING   ###
-            ##########################
-            # start handling response variables        
-            trial_info['start_select_time'] = core.getTime()
-            trial_info['resp_time'] = trial_info['start_select_time']-trial_info['start_stim_time']
-            trial_info['resp_key'] = response
-            trial_info['correct'] = int(response==trial_info['corr_resp'])
-            trial_info['block_correct'] += trial_info['correct']
-
-            if trial_info['resp_key'] == resp_keys[0]:
-                selectbar.pos = [-param['select_x'], -0.1*param['select_height']]
-            elif trial_info['resp_key'] == resp_keys[1]:
-                selectbar.pos = [param['select_x'], -0.1*param['select_height']]
-
-            # draw selection phase if response given
-            if response in resp_keys:
-                trial_info['timeout'] = 0
-                et.drawCompositeStim(select_phase)
-                trial_info['start_select_time'] = win.flip()  
-                et.sendTriggers(trigger['start_select'],mode=param['resp_mode'])
-                for frame in range(select_frames):
-                    et.drawCompositeStim(select_phase)
-                    win.flip()  
-            else:
-                trial_info['timeout'] = 1
-                timeout_screen.draw() 
-                trial_info['start_select_time'] = win.flip()
-                et.sendTriggers(trigger['timeout'],mode=param['resp_mode'])   
-                for frame in range(select_frames-1):
-                    timeout_screen.draw() 
-                    win.flip() 
-            trial_info['selectDur'] =  core.getTime()-trial_info['start_select_time']
-
-                # define incremental reward value
-            if trial_info['correct'] and trial_info['resp_key'] == resp_keys[0]:
-                reward = trial_info['mag_left']
-            elif trial_info['resp_key']==resp_keys[1] and trial_info['correct']:
-                reward = trial_info['mag_right']
-            trial_info['total_points'] += reward
-            
-            # show update bar
-            progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.75*reward,progress_bar_start.pos[1])
-            progress_update.width =1.5*reward
-            progress_update.fillColor =bar['color']
-            progress_update.lineColor =bar['color']
-            progress_bar.width += 1.5*reward
-            progress_bar.pos[0] += 0.75*reward
-            if progress_bar.width > 2*bar['horiz_dist']:
-                progress_bar.width=bar['width']
-                progress_bar.pos[0] = -bar['horiz_dist']                
-            elif progress_bar.width < bar['width']:
-                progress_bar.width=bar['width']
-                progress_bar.pos[0] = -bar['horiz_dist']
-
-            # draw feedback_phase phase
-            if trial_info['correct'] == 1:
-                selectbar.lineColor = bar['corr_color']
-            else:
-                selectbar.lineColor = bar['incorr_color']
-            
-            trial_info['start_feed_time'] = core.getTime()
-            if not trial_info['timeout']:
-                et.drawCompositeStim(feedback_phase)
-                trial_info['start_feed_time'] = win.flip()
-                et.sendTriggers(trigger['start_feed'],mode=param['resp_mode'])
-                for frame in range(feed_frames):
-                    et.drawCompositeStim(feedback_phase)
-                    win.flip()
-            
-            trial_info['end_trial_time'] = core.getTime()
-            trial_info['feedDur'] =  trial_info['end_trial_time']-trial_info['start_feed_time']
-            
-
-            # logging
-            if trial_info['trial_count'] == 1:
-                data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = param['first_columns'])
-            data_logger.writeTrial(trial_info)
-
-    # end of block message
-    et.sendTriggers(trigger['end_block'],mode=param['resp_mode'])
-    if param['resp_mode']=='keyboard':
-        event.clearEvents()
-    # show text at the end of a block 
-    if param['run_mode'] != 'dummy':      
-        endBlock.text = param["endBlock_text"].format(block_no+1,trial_info['total_points'])
-        for frame in range(pause_frames):
-            endBlock.draw()
-            win.flip() 
+    # fix phase
+    et.drawCompositeStim(fix_phase)
+    trial_info['start_trial_time']=win.flip()
+    et.sendTriggers(trigger_info['start_trial'],mode=response_info['resp_mode'])          
+    for frame in range(fix_frames_seq[trial_no]):
+        et.drawCompositeStim(fix_phase)
+        trial_info['start_stim_time']=win.flip()  
+    trial_info['fixDur'] =  core.getTime()-trial_info['start_trial_time']
     # clear any pending key presses
     event.clearEvents()
+
+    # do it framewise rather than timeout based       
+    if response_info['run_mode']=='dummy':
+        dummy_resp_frame = np.random.choice(range(resp_frames+20))
+
+    # stimulus phase
+    et.drawCompositeStim(stim_phase) 
+    # start response time measure
+    trial_info['start_stim_time'] = win.flip() 
+    et.sendTriggers(trigger_info['start_stim'],mode=response_info['resp_mode'])   
+    for frame in range(resp_frames):        
+        if frame==resp_frames:
+            et.drawCompositeStim(fix_phase)
+        else:
+            et.drawCompositeStim(stim_phase)
+        trial_info['end_stim_time'] = win.flip()
+
+        #sample response
+        if response_info['run_mode']=='dummy':
+            if dummy_resp_frame == frame:
+                response = np.random.choice(resp_keys)
+        else:
+            response = et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys)
+
+        # break if responded
+        if response in resp_keys:
+            break  
+
+    ##########################
+    ###  POST PROCESSING   ###
+    ##########################
+    # start handling response variables        
+    trial_info['start_select_time'] = core.getTime()
+    trial_info['resp_time'] = trial_info['start_select_time']-trial_info['start_stim_time']
+    trial_info['resp_key'] = response
+    trial_info['correct'] = int(response==trial_info['corr_resp'])
+
+    if trial_info['resp_key'] == resp_keys[0]:
+        selectbox.pos = [-stim_info['box_x'],stim_info['box_y']]
+    elif trial_info['resp_key'] == resp_keys[1]:
+        selectbox.pos = [stim_info['box_x'],stim_info['box_y']]
+
+    # draw selection phase if response given
+    if response in resp_keys:
+        trial_info['timeout'] = 0
+        et.drawCompositeStim(select_phase)
+        trial_info['start_select_time'] = win.flip()  
+        et.sendTriggers(trigger_info['start_select'],mode=response_info['resp_mode'])
+        for frame in range(select_frames_seq[trial_no]):
+            et.drawCompositeStim(select_phase)
+            win.flip()  
+    else:
+        trial_info['timeout'] = 1
+        timeout_screen.draw() 
+        trial_info['start_select_time'] = win.flip()
+        et.sendTriggers(trigger_info['timeout'],mode=response_info['resp_mode'])   
+        for frame in range(select_frames_seq[trial_no]-1):
+            timeout_screen.draw() 
+            win.flip() 
+    trial_info['selectDur'] =  core.getTime()-trial_info['start_select_time']
+
+    # define incremental reward value
+    if trial_info['high_prob_side']=='left':
+        if trial_info['reward_validity'] =='valid' and trial_info['resp_key'] == resp_keys[0]: 
+            reward = trial_info['mag_left']
+        elif trial_info['reward_validity'] =='invalid' and trial_info['resp_key'] == resp_keys[1]: 
+            reward = trial_info['mag_right']
+    elif trial_info['high_prob_side']=='right':
+        if trial_info['reward_validity'] =='valid' and trial_info['resp_key'] == resp_keys[1]: 
+            reward = trial_info['mag_right']
+        elif trial_info['reward_validity'] =='invalid' and trial_info['resp_key'] == resp_keys[0]: 
+            reward = trial_info['mag_left']
+    trial_info['total_points'] += reward
+    trial_info['reward'] = reward
+    
+    # show update bar
+    progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.75*reward,progress_bar_start.pos[1])
+    progress_update.width =1.5*reward
+    progress_bar.width += 1.5*reward
+    progress_bar.pos[0] += 0.75*reward
+    if progress_bar.width > 2*bar['horiz_dist']:
+        progress_bar.width=bar['width']
+        progress_bar.pos[0] = -bar['horiz_dist']                
+    elif progress_bar.width < bar['width']:
+        progress_bar.width=bar['width']
+        progress_bar.pos[0] = -bar['horiz_dist']
+
+    # draw feedback_phase phase
+    if reward != 0:
+        #selectbox.lineColor = stim_info['corr_color']
+        feedback = smiley
+    else:
+        #selectbox.lineColor = stim_info['incorr_color']
+        feedback = frowny
+    
+    trial_info['start_feed_time'] = core.getTime()
+    if not trial_info['timeout']:
+        et.drawCompositeStim(feedback_phase + [feedback])
+        trial_info['start_feed_time'] = win.flip()
+        et.sendTriggers(trigger_info['start_feed'],mode=response_info['resp_mode'])
+        for frame in range(feed_frames):
+            et.drawCompositeStim(feedback_phase+ [feedback])
+            win.flip()
+    
+    trial_info['end_trial_time'] = core.getTime()
+    trial_info['feedDur'] =  trial_info['end_trial_time']-trial_info['start_feed_time']
+
+    # logging
+    if trial_info['trial_no'] == 1:
+        data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
+    data_logger.writeTrial(trial_info)
+
+    
+    if trial_info['trial_no'] in pause_seq:
+        # end of block message
+        et.sendTriggers(trigger_info['end_block'],mode=response_info['resp_mode'])
+        if response_info['resp_mode']=='keyboard':
+            event.clearEvents()
+        # show text at the end of a block 
+        if response_info['run_mode'] != 'dummy':      
+            endBlock.text = stim_info["endBlock_text"].format(trial_no['block_no'],trial_info['total_points'])
+            for frame in range(pause_frames):
+                endBlock.draw()
+                win.flip() 
+        # clear any pending key presses
+        event.clearEvents()
 # end of experiment message
-if param['run_mode'] != 'dummy':
-    endExp.text = param["endExp_text"].format(trial_info['total_points'])
+if response_info['run_mode'] != 'dummy':
+    endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
     while True:
         endExp.draw()
         win.flip()
-        cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
+        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
         if cont == pause_resp:
             break
 #cleanup
