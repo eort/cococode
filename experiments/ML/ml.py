@@ -10,7 +10,7 @@ import sys, os # to interact with the operating system
 from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
-from IPython import embed as shell # for debugging
+#from IPython import embed as shell # for debugging
 import pandas as pd # efficient table operations
 import itertools as it # doing some combinatorics
 
