@@ -6,7 +6,7 @@ def prepDirectories():
     """
     make folders that are expected to exist
     """
-    dirs = ['log','dat']
+    dirs = ['log','dat','settings']
     for arg in dirs:
         if not os.path.exists(arg):
               os.makedirs(arg)   

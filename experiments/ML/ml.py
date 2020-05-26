@@ -1,7 +1,7 @@
 # created by Eduard Ort, 2020
 
 ##########################
-###  import libraries  ###
+###  IMPORT LIBRARIES  ###
 ##########################
 from psychopy import visual, core, event,gui,logging #import some libraries from PsychoPy
 import expTools as et # custom scripts
@@ -10,14 +10,13 @@ import sys, os # to interact with the operating system
 from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
-#from IPython import embed as shell # for debugging
 import pandas as pd # efficient table operations
 import itertools as it # doing some combinatorics
 
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
 #######################################
-###  load config file (settings)  #####
+###          LOAD CONFIG FILE     #####
 #######################################
 try:
     jsonfile = sys.argv[1]
@@ -73,13 +72,13 @@ if sess_type!=input_dict['sess_type']:
 
 # prepare the logfile (general log file, not data log file!) and directories
 et.prepDirectories()
-logFileID = str(datetime.now()).replace(' ','-').replace(':','-')
-log_file = os.path.join('log',logging_info['skeleton_file']+'.log').format(input_dict['sub_id'],input_dict['sess_id'],logFileID)
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+log_file = os.path.join('log',logFileID+'.log')
 lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # create a output file that collects all variables 
-output_file = os.path.join('dat',param['exp_id'],logging_info['skeleton_file']+'.csv').format(input_dict['sub_id'],input_dict['sess_id'],logFileID)
+output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
 # save the current settings per session, so that the data files stay slim
-settings_file = os.path.join('settings',param['exp_id'],logging_info['skeleton_file']+'.json').format(input_dict['sub_id'],input_dict['sess_id'],logFileID)
+settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
 if not os.path.exists(os.path.dirname(settings_file)): 
     os.makedirs(os.path.dirname(settings_file))
 os.system('cp {} {}'.format(jsonfile,settings_file))

@@ -1,9 +1,9 @@
 # created by Eduard Ort, 2019 
 # based on Matlab code by Hannah Kurtenbach
 
-#######################
-###  import libraries  ###
-#######################
+##########################
+###  IMPORT LIBRARIES  ###
+##########################
 from psychopy import visual, core, event,gui,logging #import some libraries from PsychoPy
 import expTools as et # custom scripts
 import json # to load configuration files
@@ -11,7 +11,6 @@ import sys, os # to interact with the operating system
 from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
-#from IPython import embed as shell # for debugging
 
 # reset system
 os.system('parashell 0x378 0')
@@ -31,18 +30,24 @@ except FileNotFoundError as e:
     sys.exit(-1)
 
 ###########################################
-###  Create Parameters / do Overhead   ####
+###          READ OUT JSON SIDECAR     ####
 ###########################################
-# read out json sidecar
+timing_info =param['timing_info']                 # information on the timings of the sequence
+stim_info=param['stim_info']                      # information on all stimuli to be drawn
+win_info=param['win_info']                        # information on the psychopy window  
+response_info=param['response_info']              # information on response collection  
+reward_info=param['reward_info']                  # Information on the reward schedule
+logging_info=param['logging_info']                # information on files and variables for logging
+trigger_info = param['trigger_info']              # information on all the MEG trigger values and names
 n_trials = param['n_trials']            # number trials per block
 n_miniblocks = param['n_miniblocks']    # number total blocks
 n_exem = param['n_exem']                # number exemplars per family
 n_fams = param['n_fams']                # number families
-fix_sleep_mean = param['fix_mean']      # mean presentation duration of fixdot
-fix_sleep_range = param['fix_range']    # min and max range of fixdot
 sess_type = param['sess_type']          # are we practicing or not
-trigger = param['trigger']              # what are the MEG triggers
 
+###########################################
+###         HANDLE INPUT DIALOG        ####
+###########################################
 # dialog with participants: Retrieve Subject number, session number, and practice
 input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
 inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
@@ -62,39 +67,50 @@ if sess_type!=input_dict['sess_type']:
     print('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
     logging.warning('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
 
+###########################################
+###           SET UP OVERHEAD          ####
+###########################################
+
 # prepare the logfile (general log file, not data log file!) and directories
 et.prepDirectories()
-logFile = os.path.join('log',param['logFile'].format(input_dict['sub_id'],input_dict['sess_id'],datetime.now()).replace(' ','-').replace(':','-'))
-lastLog = logging.LogFile(logFile, level=logging.INFO, filemode='w')
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+log_file = os.path.join('log',logFileID+'.log')
+lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # create a output file that collects all variables 
-output_file = os.path.join('dat',param['exp_id'],param['output_file'].format(input_dict['sub_id'],input_dict['sess_id'],datetime.now()).replace(' ','-').replace(':','-'))
+output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
+# save the current settings per session, so that the data files stay slim
+settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
+if not os.path.exists(os.path.dirname(settings_file)): 
+    os.makedirs(os.path.dirname(settings_file))
+os.system('cp {} {}'.format(jsonfile,settings_file))
 
 # init logger variables
 # update the constant values (things that wont change)
-trial_info = { "sub_id":input_dict['sub_id'],
-            "sess_id":input_dict['sess_id'],
-            "sess_type":input_dict['sess_type'],
-            "start_exp_time":core.getTime() ,
-            "end_block_time":np.nan}
+trial_info = { 'sub_id':input_dict['sub_id'],
+                'sess_id':input_dict['sess_id'],
+                'sess_type':input_dict['sess_type'],
+                'logFileID':logFileID,
+                'total_reward':0,
+                'trial_count':0,
+                'total_correct':0,
+                'start_exp_time':core.getTime(),
+                'end_block_time':np.nan}
 # migrate info from logfile
-for vari in param['logVars']:
+for vari in logging_info['logVars']:
     trial_info[vari] = param[vari]
-# plus two more variables
-trial_info['logFile'] = logFile
-trial_info['output_file'] = output_file
 
 ###########################################
-###  Create Experimental Sequence      ####
+###  PREPARE EXPERIMENTAL SEQUENCE     ####
 ###########################################
 # define the response button (flexible for with response box vs. keyboard)
-if param['resp_mode'] == 'meg':
-    resp_go = param['response_button']
-    pause_resp = param['pause_button']
+if response_info['resp_mode'] == 'meg':
+    resp_go = response_info['response_button']
+    pause_resp = response_info['pause_button']
 else:
-    resp_go = param['response_key']
-    pause_resp = param['pause_key']
+    resp_go = response_info['response_key']
+    pause_resp = response_info['pause_key']
 
-resp_keys = [resp_go,param['resp_nogo']]
+resp_keys = [resp_go,response_info['resp_nogo']]
 # initialize the previous item to prevent greeble repeats
 prev_item = None
 
@@ -134,21 +150,22 @@ else:
 trial_info['go_stim'] = go_stim
 trial_info['nogo_stim'] = nogo_stim
 
-# reset block variables
-trial_info['total_correct'] = 0
-
+####################
+###  SET TIMING  ###
+####################
 # make a sequence of fix-stim jitter
-fix_seq = np.random.uniform(fix_sleep_mean-fix_sleep_range,fix_sleep_mean+fix_sleep_range, size=(n_miniblocks,n_trials))
+fix_seq = np.random.uniform(timing_info['fix_mean']-timing_info['fix_range'],timing_info['fix_mean']+timing_info['fix_range'], size=(n_miniblocks,n_trials))
 
 # convert timing to frames
-pause_frames = round(param['pause_sleep']*param['framerate'])
-feed_frames = round(param['feed_sleep']*param['framerate'])
+pause_frames = round(timing_info['pause_sleep']*win_info['framerate'])
+feed_frames = round(timing_info['feed_sleep']*win_info['framerate'])
+fix_frames_seq = (fix_seq*win_info['framerate']).round().astype(int)
 
 ################################
-###  START ACTUAL EXPERIMENT ###
+###         MAKE STIMULI     ###
 ################################
 #create a window
-win = visual.Window(size=param['win_size'],color=param['bg_color'],fullscr=param['fullscreen'],units="pix",screen=1)
+win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscreen'],units="pix",screen=1)
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
 event.clearEvents()
@@ -156,44 +173,41 @@ event.clearEvents()
 ###  prepare stimuli  ###
 #########################
 # first all kind of structural messages
-startexp = visual.TextStim(win,text=param['startexp_text'],color=param['fg_color'],wrapWidth=win.size[0])
-endExp = visual.TextStim(win,text=param['exp_outro'],color=param['fg_color'],wrapWidth=win.size[0])
-pause = visual.TextStim(win,text=param['pause_text'],color=param['fg_color'],wrapWidth=win.size[0])
+startexp = visual.TextStim(win,text=stim_info['startexp_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
+endExp = visual.TextStim(win,text=stim_info['exp_outro'],color=win_info['fg_color'],wrapWidth=win.size[0])
+pause = visual.TextStim(win,text=stim_info['pause_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 #feedback things   
 smiley = visual.ImageStim(win,'smiley.png',contrast=-1) # good feedback
 frowny = visual.ImageStim(win,'frowny.png',contrast=-1) # bad feedback
 # progressbar 
-progress_bar =visual.Rect(win,width=10,height=20,lineColor=param['fg_color'],fillColor=param['fg_color'],pos = [-500,-200])
-progress_bar_start =visual.Rect(win,width=10,height=20,lineColor=param['fg_color'],fillColor=param['fg_color'],pos = [-500,-200])
-progress_bar_end =visual.Rect(win,width=10,height=20,lineColor=param['fg_color'],fillColor=param['fg_color'],pos = [500,-200])
+progress_bar =visual.Rect(win,width=10,height=20,lineColor=win_info['fg_color'],fillColor=win_info['fg_color'],pos = [-500,-200])
+progress_bar_start =visual.Rect(win,width=10,height=20,lineColor=win_info['fg_color'],fillColor=win_info['fg_color'],pos = [-500,-200])
+progress_bar_end =visual.Rect(win,width=10,height=20,lineColor=win_info['fg_color'],fillColor=win_info['fg_color'],pos = [500,-200])
 # Greeble and fixation dot
-greeble = visual.ImageStim(win,image=image_paths[0],size=(320*param['image_scale'],360*param['image_scale']))
-fixDot = et.fancyFixDot(win, bg_color = param['bg_color'],size=24) # fixation dot
+greeble = visual.ImageStim(win,image=image_paths[0],size=(320*stim_info['image_scale'],360*stim_info['image_scale']))
+fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size=24) # fixation dot
 
 # combine feedback stims to make it easier later
 feedback_stims = [frowny,smiley]
 
 ###########################
-###  PREPARE BLOCK VARS ###
+###  START BLOCK LOOP # ###
 ###########################
 # draw intro before starting block
-if param['run_mode'] != 'dummy':
-    startexp.draw()
-    trial_info['start_block_time']=win.flip()
+startexp.draw()
+trial_info['start_block_time']=win.flip()
+if response_info['run_mode'] != 'dummy':
     while True:
         startexp.draw()
         win.flip()                        
-        cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
+        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
         if cont == pause_resp:
             break
 
 # send trigger
-et.sendTriggers(trigger['block_on'],mode=param['resp_mode'])
+et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
 trial_info['block_no'] = 1
 
-###########################
-###  START BLOCK LOOP # ###
-###########################
 for miniblock_no in range(n_miniblocks):
     # we use fake blocks here. Better word would be building blocks
     # blocks are not separated by a pause screen or something like that
@@ -224,12 +238,11 @@ for miniblock_no in range(n_miniblocks):
 
     # If a pause block occur, interupt sequence and show a message
     # these pauses are the actual block breaks
-    if miniblock_no+1 in trial_info['pause_blocks']:
+    if miniblock_no+1 in param['pause_blocks']:
         # show pause and send block off trigger 
         pause.draw()
         trial_info['end_block_time'] = win.flip() 
-        et.sendTriggers(trigger['block_off'],mode=param['resp_mode'])
-        if param['run_mode'] != 'dummy':
+        if response_info['run_mode'] != 'dummy':
             for frame in range(pause_frames):
                 pause.draw()
                 win.flip() 
@@ -237,13 +250,13 @@ for miniblock_no in range(n_miniblocks):
             while True:
                 startexp.draw()
                 win.flip()                        
-                cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
+                cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
                 if cont == pause_resp:
                     break
 
         trial_info['block_no'] +=1
         # send trigger for block on things
-        et.sendTriggers(trigger['block_on'],mode=param['resp_mode'])
+        et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
 
         # time when block started
         trial_info['start_block_time'] = core.getTime()
@@ -251,11 +264,11 @@ for miniblock_no in range(n_miniblocks):
     trial_info['miniblock_no']=miniblock_no+1
     
     # define context (based on pre-defined length and timing of noreward blocks)
-    if miniblock_no+1 in trial_info['noreward_blocks']:
+    if miniblock_no+1 in param['noreward_blocks']:
         trial_info['context'] = 'probe'
-    elif miniblock_no+1 in trial_info['pre_blocks']:
+    elif miniblock_no+1 in param['pre_blocks']:
         trial_info['context'] = 'reward' 
-    elif miniblock_no+1 in trial_info['post_blocks']:
+    elif miniblock_no+1 in param['post_blocks']:
         trial_info['context'] = 'reward' 
           
     ##########################
@@ -273,7 +286,6 @@ for miniblock_no in range(n_miniblocks):
         
         # draw duration of fix cross from predefined distribution
         trial_info['fix_sleep'] = fix_seq[miniblock_no,trial_no]
-        fix_frames = int(trial_info['fix_sleep']*param['framerate'])
 
         # set trial-specific variables
         trial_info['trial_no'] = trial_no+1
@@ -289,10 +301,10 @@ for miniblock_no in range(n_miniblocks):
 
         
         # send triggers
-        et.sendTriggers(trigger['trial_on'],mode=param['resp_mode'])
+        et.sendTriggers(trigger_info['start_trial'],mode=response_info['resp_mode'])
 
         # fixation period
-        for frame in range(fix_frames):
+        for frame in range(fix_frames_seq[miniblock_no,trial_no]):
             # make presence of progress bar contingent on context
             if trial_info['context'] == 'reward':    
                 et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end])            
@@ -318,17 +330,17 @@ for miniblock_no in range(n_miniblocks):
 
         # send trigger
         if trial_info['condition'] == 'go':
-            et.sendTriggers(trigger['go_greeble'],mode=param['resp_mode'])
+            et.sendTriggers(trigger_info['go_greeble'],mode=response_info['resp_mode'])
         elif trial_info['condition'] == 'nogo':
-            et.sendTriggers(trigger['nogo_greeble'],mode=param['resp_mode'])
+            et.sendTriggers(trigger_info['nogo_greeble'],mode=response_info['resp_mode'])
 
         # do it framewise rather than timeout based
-        resp_frames = round((param['resp_timeout']-(core.getTime()-trial_info['start_stim_time']))*param['framerate'])
-        stim_frames = round((param['stim_sleep']-(core.getTime()-trial_info['start_stim_time']))*param['framerate'])
+        resp_frames = round((timing_info['resp_timeout']-(core.getTime()-trial_info['start_stim_time']))*win_info['framerate'])
+        stim_frames = round((timing_info['stim_sleep']-(core.getTime()-trial_info['start_stim_time']))*win_info['framerate'])
 
-        if param['resp_mode']=='keyboard':
+        if response_info['resp_mode']=='keyboard':
             event.clearEvents()
-        if param['run_mode']=='dummy':
+        if response_info['run_mode']=='dummy':
             dummy_resp_frame = np.random.choice(range(resp_frames))
 
         for frame in range(resp_frames):
@@ -340,24 +352,21 @@ for miniblock_no in range(n_miniblocks):
             else:
                 if frame==stim_frames:
                     trial_info['end_stim_time'] = core.getTime()
-                    et.sendTriggers(trigger['greeble_off'],mode=param['resp_mode'])
+                    et.sendTriggers(trigger_info['start_resp'],mode=response_info['resp_mode'])
                 et.drawCompositeStim(fixDot)
                 if trial_info['context'] == 'reward':
                     et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end]) 
                 win.flip()
 
-            if param['run_mode']=='dummy':
+            if response_info['run_mode']=='dummy':
                 if dummy_resp_frame == frame:
                     response = np.random.choice(resp_keys)
                 else: response = None
             else:
-                response = et.captureResponse(mode=param['resp_mode'],keys=resp_keys)
+                response = et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys)
 
             # break if go
             if response == resp_go:
-                core.wait(0.01)
-                if frame < stim_frames:
-                    et.sendTriggers(trigger['greeble_off'],mode=param['resp_mode'])
                 break           
 
         ##########################
@@ -375,15 +384,15 @@ for miniblock_no in range(n_miniblocks):
         if trial_info['context'] == 'reward':
             if trial_info['resp_key']==resp_go: 
                 if trial_info['correct']:
-                    trial_info['total_reward']+= trial_info['reward_step']
-                    progress_bar.width += 250*trial_info['reward_step']
-                    progress_bar.pos[0] += 250*(trial_info['reward_step']/2)
+                    trial_info['total_reward']+= reward_info['conv_factor']
+                    progress_bar.width += 250*reward_info['conv_factor']
+                    progress_bar.pos[0] += 250*(reward_info['conv_factor']/2)
                 else:
-                    trial_info['total_reward']-= trial_info['reward_step']
-                    progress_bar.width -= (250*trial_info['reward_step'])
-                    progress_bar.pos[0] -= (250*(trial_info['reward_step']/2))
+                    trial_info['total_reward']-= reward_info['conv_factor']
+                    progress_bar.width -= (250*reward_info['conv_factor'])
+                    progress_bar.pos[0] -= (250*(reward_info['conv_factor']/2))
                 if progress_bar.width > 1000:
-                    progress_bar.width=trial_info['rewad_step']
+                    progress_bar.width=reward_info['conv_factor']
                     progress_bar.pos[0] = -500                
                 elif progress_bar.width < 10:
                     progress_bar.width=10
@@ -395,7 +404,7 @@ for miniblock_no in range(n_miniblocks):
                 # add progress bar if in right context
                 et.drawCompositeStim([progress_bar,progress_bar_start,progress_bar_end])
                 trial_info['start_feed_time'] = win.flip()                 
-                et.sendTriggers(trigger['fb_on'],mode=param['resp_mode'])
+                et.sendTriggers(trigger_info['start_fb'],mode=response_info['resp_mode'])
                 
                 for frame in range(feed_frames):
                     # show feedback, depending on context   
@@ -406,16 +415,13 @@ for miniblock_no in range(n_miniblocks):
                     win.flip()            
                     
                 trial_info['end_feed_time'] = core.getTime()
-                # triggers for fb off
-                et.sendTriggers(trigger['fb_off'],mode=param['resp_mode'])
                 # timing checks      
                 trial_info['feedbackDur'] = trial_info['end_feed_time']-trial_info['start_feed_time']
 
         # trial off time
         trial_info['end_trial_time'] = core.getTime()
-        et.sendTriggers(trigger['trial_off'],mode=param['resp_mode'])
         if trial_info['trial_count'] == 1:
-            data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = param['first_columns'])
+            data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
         data_logger.writeTrial(trial_info)
 
     # update the previous greeble which codes the last greeble in a miniblock
@@ -427,13 +433,13 @@ for miniblock_no in range(n_miniblocks):
 if trial_info['sess_type'] != 'practice':
     endExp.text = 'Fertig. Deine Accuracy ist {}%'.format(int(100*trial_info['total_correct']/trial_info['trial_count']))
 else:
-    endExp.text = param['exp_outro'].format(max(0,trial_info['total_reward']))
+    endExp.text = stim_info['exp_outro'].format(max(0,trial_info['total_reward']))
 
-if param['run_mode'] != 'dummy':
+if response_info['run_mode'] != 'dummy':
     while True:
         endExp.draw()
         win.flip()
-        cont=et.captureResponse(mode=param['resp_mode'],keys = [pause_resp])    
+        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
         if cont == pause_resp:
             break
 #cleanup
