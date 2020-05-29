@@ -234,7 +234,7 @@ for trial_no in range(trial_seq.shape[0]):
         trial_info['pause_no'] += 1 
         if response_info['run_mode'] != 'dummy':
             while True:
-                startBlock.text = stim_info["startBlock_text"].format(trial_info['trial_no'])
+                startBlock.text = stim_info["startBlock_text"].format(trial_info['block_no'])
                 startBlock.draw()
                 trial_info['start_block_time'] = win.flip()                        
                 cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
