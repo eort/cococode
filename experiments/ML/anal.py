@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os,sys,glob,json
+from IPython import embed as shell
 
 def localAverage(series,window=5):
     new_s =  pd.Series(pd.np.nan, index=series.index,name='mov_avg')
@@ -28,7 +29,8 @@ def plotResults(acc,mov_avg,outpath = 'fig1.pdf'):
     for i in mov_avg.block_no.unique():
         plotData = mov_avg[mov_avg.block_no==i]
         colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
-        sns.lineplot(x='trial_no',y='mov_avg' ,palette=colors[i-1],data=plotData)
+        value = str(mov_avg.loc[1,'avg'])
+        sns.lineplot(x='trial_no',y='{}'.format(value) ,palette=colors[i-1],data=plotData)
 
     plt.tight_layout()
     plt.savefig(outpath)
@@ -44,19 +46,60 @@ def runAnal(datFolder):
         allDat = pd.read_csv(datFolder)
         outpath= datFolder.replace('csv','png')
 
+    
     allDat.correct = allDat.correct.astype(int)
+
+    allDat['prob_left'] = 0.2
+    allDat['prob_left'].loc[allDat['high_prob_side'] == 'left' ]= 0.8
+    allDat['prob_right'] = 0.2
+    allDat['prob_right'].loc[allDat['high_prob_side'] == 'right' ]= 0.8
+    allDat['ev_left'] = allDat.mag_left*allDat.prob_left
+    allDat['ev_right'] = allDat.mag_right*allDat.prob_right
+    allDat['ev_correct_resp'] = 'left'
+    allDat['ev_correct_resp'].loc[allDat['ev_left']<allDat['ev_right']] = 'right'
+    allDat['mag_correct_resp'] = 'left'
+    allDat['mag_correct_resp'].loc[allDat['mag_left']<allDat['mag_right']] = 'right'
+    allDat['mag_correct'] = allDat['mag_correct_resp'] == allDat['resp_key']
+    allDat['ev_correct'] = allDat['ev_correct_resp'] == allDat['resp_key']
+    allDat['mags'] = list(zip(allDat.mag_left,allDat.mag_right))
+
     # filter
     cleanDat = allDat.loc[allDat['timeout']==0]
     cleanDat['mov_avg']= cleanDat.groupby(['sub_id'])['correct'].apply(localAverage)
+    cleanDat['avg']= 'mov_avg'
+    cleanDat['ev_mov_avg']= cleanDat.groupby(['sub_id'])['ev_correct'].apply(localAverage)
+    cleanDat['mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(localAverage)
 
+
+    #pd.crosstab(allDat.mags, allDat.high_prob_side)
     # aggregate data for sub stats
     firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['correct','resp_time'].mean().reset_index()
     secondlvl_acc= cleanDat.groupby(['sub_id'])['correct','resp_time'].mean().reset_index()
-
     # plot
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
     correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='correct']
     plotResults(correct,cleanDat,outpath)
+
+    cleanDat['avg']= 'ev_mov_avg'
+    outpath= outpath.replace('2020','2021')
+    # aggregate data for sub stats
+    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['ev_correct','resp_time'].mean().reset_index()
+    secondlvl_acc= cleanDat.groupby(['sub_id'])['ev_correct','resp_time'].mean().reset_index()
+    # plot
+    secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
+    ev_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='ev_correct']
+    plotResults(ev_correct,cleanDat,outpath)
+
+    outpath= outpath.replace('2021','2022')
+    cleanDat['avg']= 'mag_mov_avg'
+    # aggregate data for sub stats
+    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['mag_correct','resp_time'].mean().reset_index()
+    secondlvl_acc= cleanDat.groupby(['sub_id'])['mag_correct','resp_time'].mean().reset_index()
+    # plot
+    secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
+    mag_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='mag_correct']
+    plotResults(mag_correct,cleanDat,outpath)
+    shell()
 
 if __name__ == '__main__':
     try:

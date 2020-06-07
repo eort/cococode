@@ -48,10 +48,10 @@ rdk = stim_info['cloud_specs']                    # info on RDK
 ###         HANDLE INPUT DIALOG        ####
 ###########################################
 # dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type,noise_duration=timing_info['fix_mean'])
+input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type,noise_duration=timing_info['noise_mean'])
 inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type',"noise_duration"])
 
-fix_mean = input_dict['noise_duration']
+noise_mean = input_dict['noise_duration']
 # check for input
 if inputGUI.OK == False:
     print("Experiment aborted by user")
@@ -149,8 +149,9 @@ timeout_scr = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win
 ####################
 pause_frames = round(timing_info['pause_sleep']*win_info['framerate'])
 feed_frames = round(timing_info['feed_sleep']*win_info['framerate'])
-fix_seq = np.random.uniform(fix_mean-timing_info['fix_range'],fix_mean+timing_info['fix_range'], size=(n_blocks,n_trials+param['n_zero']))
-fix_frames_seq = (fix_seq*win_info['framerate']).round().astype(int)
+fix_frames = round(timing_info['fix_sleep']*win_info['framerate'])
+noise_seq = np.random.uniform(noise_mean-timing_info['noise_range'],noise_mean+timing_info['noise_range'], size=(n_blocks,n_trials+param['n_zero']))
+noise_frames_seq = (noise_seq*win_info['framerate']).round().astype(int)
    
 ###########################
 ###  START BLOCK LOOP # ###
@@ -224,8 +225,7 @@ for block_no in range(n_blocks):
         trial_info['feedbackDur']= np.nan
         
         # draw duration of fix cross from predefined distribution
-        trial_info['fix_sleep'] = fix_seq[block_no,trial_no]
-
+        trial_info['noise_sleep'] = noise_seq[block_no,trial_no]
         trial_info['trial_no'] = trial_no+1
         trial_info['trial_count']+=1
         # set specific orientations
@@ -245,7 +245,7 @@ for block_no in range(n_blocks):
         et.drawCompositeStim(fixDot)
         trial_info['start_trial_time'] =win.flip()  
         et.sendTriggers(trigger_info['fix_on'],mode=response_info['resp_mode'])   
-        for frame in range(fix_frames_seq[block_no,trial_no]):
+        for frame in range(fix_frames):
             et.drawCompositeStim(fixDot)
             trial_info['end_fix_time'] = win.flip()
         
@@ -256,7 +256,7 @@ for block_no in range(n_blocks):
         trial_info['start_noise_time'] =win.flip()       
         # send triggers
         et.sendTriggers(trigger_info['noise_on'],mode=response_info['resp_mode'])
-        for frame in range(fix_frames_seq[block_no,trial_no]):
+        for frame in range(noise_frames_seq[block_no,trial_no]):
             et.drawCompositeStim(fixDot+[noise])
             trial_info['start_stim_time']=win.flip()  
 

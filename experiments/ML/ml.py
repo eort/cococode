@@ -120,10 +120,9 @@ colors = stim_info['color_combinations'][color_idx[trial_info['sess_id']-1]]
 np.random.shuffle(colors)
 
 # counterbalance the order of volatile and stable blocks across subs and sessions
-block_type_order = ['sss','ssv','svs','svv','vss','vsv','vvs','vvv'][trial_info['sub_id']%8] # (v)olatile, (s)table
-first_phase = block_type_order[trial_info['sess_id']-1]
+block_type_order = ['sv','vs'][trial_info['sub_id']%2] # (v)olatile, (s)table
 np.random.shuffle(param['volatile_blocks'])
-if first_phase == 's':
+if block_type_order == 'sv':
     block_types = ['stable']+['volatile']*round(len(param['volatile_blocks']))
     blocks = param['stable_blocks']+ param['volatile_blocks']
 else:
@@ -133,7 +132,7 @@ else:
 # create building blocks of possible location/validity combinations 
 # currently it only works with 80-20%. Having 75 oder 70 will require reprogramming to allow for perfectly balanced trials
 # proper ratio of valid and invalid trials (highlikely color will bring reward)
-reward_ratio = np.array([1]*round(reward_info['high_prob']*5)+[0]*round((1-reward_info['high_prob'])*5))
+reward_ratio = np.array([1]*round(reward_info['high_prob']*10)+[0]*round((1-reward_info['high_prob'])*10))
 # extend this balanced ratio to location (left,right)
 # 0 unreward left, 1 rewarded left, 2 unrewarded right, rewarded right
 reward_ratio_both_sides = np.concatenate((reward_ratio,reward_ratio+2))
@@ -141,10 +140,12 @@ reward_ratio_both_sides = np.concatenate((reward_ratio,reward_ratio+2))
 # initialize full trial list
 trial_seq = []
 magn_seq = []
+
 for n_trials in blocks:
-    # per consistent block, generate all trials types
+    # per consistent block, generate all trial types
     target_reward_side = np.repeat(reward_ratio_both_sides,n_trials/len(reward_ratio_both_sides)).tolist()
     # per consistent block, generate all magnitude options (unbalanced)
+    np.random.shuffle(reward_info['mags'])
     magnitudes = np.array(reward_info['mags'])
     for reps in range(round(n_trials/len(reward_info['mags']))-1):
         magnitudes = np.concatenate((magnitudes,reward_info['mags'])).tolist()
