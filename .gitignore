@@ -1,0 +1,5 @@
+**/dat
+**/log
+**/settings
+**/__pycache__
+*.pdf
