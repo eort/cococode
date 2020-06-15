@@ -1,7 +1,7 @@
 {   
     "name":"greego",
     "version":"2.3",
-    "exp_id":"screen_beh",
+    "exp_id":"screening_beh",
     "sess_type":"screening",
     "n_miniblocks":49,
     "n_trials":8,    

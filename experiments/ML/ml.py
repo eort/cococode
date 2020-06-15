@@ -176,9 +176,9 @@ reward_validity_seq = ['valid' if i in [1,3] else 'invalid' for i in trial_seq]
 fix_seq = np.random.uniform(timing_info['fix_mean']-timing_info['fix_range'],timing_info['fix_mean']+timing_info['fix_range'], size=trial_seq.shape)
 select_seq = np.random.uniform(timing_info['select_mean']-timing_info['select_range'],timing_info['select_mean']+timing_info['select_range'], size=trial_seq.shape)
 # convert timing to frames
-pause_frames = round(timing_info['pause_sleep']*win_info['framerate'])
-feed_frames = round(timing_info['feed_sleep']*win_info['framerate'])
-resp_frames = round(timing_info['resp_timeout']*win_info['framerate'])
+pause_frames = round(timing_info['pause_dur']*win_info['framerate'])
+feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
+resp_frames = round(timing_info['resp_dur']*win_info['framerate'])
 fix_frames_seq = (fix_seq*win_info['framerate']).round().astype(int)
 select_frames_seq = (select_seq*win_info['framerate']).round().astype(int)
 
@@ -235,7 +235,7 @@ for trial_no in range(trial_seq.shape[0]):
         trial_info['pause_no'] += 1 
         if response_info['run_mode'] != 'dummy':
             while True:
-                startBlock.text = stim_info["startBlock_text"].format(trial_info['block_no'])
+                startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'])
                 startBlock.draw()
                 trial_info['start_block_time'] = win.flip()                        
                 cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
@@ -255,8 +255,8 @@ for trial_no in range(trial_seq.shape[0]):
     # set trial variables
     trial_info['corr_resp'] = target_side_seq[trial_no]
     trial_info['trial_no'] = trial_no+1
-    trial_info['fix_sleep'] = fix_seq[trial_no]
-    trial_info['select_sleep'] = select_seq[trial_no]
+    trial_info['fix_dur'] = fix_seq[trial_no]
+    trial_info['select_dur'] = select_seq[trial_no]
     trial_info['mag_left'] = magn_seq[trial_no][0]
     trial_info['mag_right'] = magn_seq[trial_no][1]
     trial_info['high_prob_side'] = target_side_seq[trial_no]
@@ -380,10 +380,8 @@ for trial_no in range(trial_seq.shape[0]):
 
     # draw feedback_phase phase
     if reward != 0:
-        #selectbox.lineColor = stim_info['corr_color']
         feedback = smiley
     else:
-        #selectbox.lineColor = stim_info['incorr_color']
         feedback = frowny
     
     trial_info['start_feed_time'] = core.getTime()

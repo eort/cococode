@@ -10,8 +10,7 @@ from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
 #from IPython import embed as shell # for debugging
-prefs.hardware['audioLib'] = ['pyo']
-from psychopy import sound
+
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
 #######################################
@@ -127,7 +126,6 @@ win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
 event.clearEvents()
-sound = sound.Sound('A',secs = 0.05)
 
 # first all kind of structural messages
 startBlock = visual.TextStim(win,text=stim_info["blockStart"],color='white',wrapWidth=win.size[0])
@@ -135,23 +133,18 @@ endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color='white',wrapWidt
 endExp = visual.TextStim(win,text=stim_info["exp_outro"],color='white',wrapWidth=win.size[0])
 warning = visual.TextStim(win,text=stim_info["warning"],color='white',wrapWidth=win.size[0])
 fixDot = et.fancyFixDot(win, fg_color = win_info['fg_color'],bg_color = win_info['bg_color']) 
-if param['cue'] == 'fix':
-    fixCue = et.fancyFixDot(win, fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size =36) 
-else:
-    fixCue = fixDot
-
 cloud = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle')
 noise = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',coherence=0)
-timeout_scr = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
+feedback = visual.TextStim(win,text='',color='white',wrapWidth=win.size[0])
 
 ####################
 ###  SET TIMING  ###
 ####################
-pause_frames = round(timing_info['pause_sleep']*win_info['framerate'])
-feed_frames = round(timing_info['feed_sleep']*win_info['framerate'])
-fix_frames = round(timing_info['fix_sleep']*win_info['framerate'])
+pause_frames = round(timing_info['pause_dur']*win_info['framerate'])
+feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
+fix_frames = round(timing_info['fix_dur']*win_info['framerate'])
+stim_frames = round(timing_info['stim_dur']*win_info['framerate'])
 noise_seq = np.random.uniform(noise_mean-timing_info['noise_range'],noise_mean+timing_info['noise_range'], size=(n_blocks,n_trials+param['n_zero']))
-noise_frames_seq = (noise_seq*win_info['framerate']).round().astype(int)
    
 ###########################
 ###  START BLOCK LOOP # ###
@@ -223,9 +216,10 @@ for block_no in range(n_blocks):
         trial_info['stimDur']= np.nan
         trial_info['end_feed_time']= np.nan
         trial_info['feedbackDur']= np.nan
-        
+        trial_info['early_response'] = 0
+        trial_info['timeout']=0
         # draw duration of fix cross from predefined distribution
-        trial_info['noise_sleep'] = noise_seq[block_no,trial_no]
+        trial_info['noise_dur'] = noise_seq[block_no,trial_no]
         trial_info['trial_no'] = trial_no+1
         trial_info['trial_count']+=1
         # set specific orientations
@@ -238,6 +232,13 @@ for block_no in range(n_blocks):
             cloud.dir = trial_info['cur_dir']
         else:
             cloud.dir = None
+
+        dot_frames = int(round((trial_info['noise_dur']+timing_info['resp_dur'])*win_info['framerate']))
+        noise_frames = int(round(trial_info['noise_dur']*win_info['framerate']))
+        # choose a dummy response mode response frame
+        if response_info['run_mode']=='dummy':
+            dummy_resp_frame = max(noise_frames+1,np.random.choice(range(dot_frames)))
+
         ##########################
         ###  FIXATION PHASE    ###
         ##########################   
@@ -248,51 +249,34 @@ for block_no in range(n_blocks):
         for frame in range(fix_frames):
             et.drawCompositeStim(fixDot)
             trial_info['end_fix_time'] = win.flip()
-        
-        ##########################
-        ###  STIMULUS PHASE    ###
-        ########################## 
-        et.drawCompositeStim(fixDot+[noise])
-        trial_info['start_noise_time'] =win.flip()       
-        # send triggers
-        et.sendTriggers(trigger_info['noise_on'],mode=response_info['resp_mode'])
-        for frame in range(noise_frames_seq[block_no,trial_no]):
-            et.drawCompositeStim(fixDot+[noise])
-            trial_info['start_stim_time']=win.flip()  
 
-        trial_info['fixDur']= core.getTime()-trial_info['start_trial_time']
-
+        # remove premature responses
         if response_info['resp_mode']=='keyboard':
             event.clearEvents()
         else:
             # check whether a button in the response box is currently pressed & present a warning if so
             while et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys) in resp_keys:
                 trial_info['start_stim_time']=win.flip()
-                if trial_info['start_stim_time']-t0>1.0:
+                if trial_info['start_stim_time']-trial_info['end_fix_time']>1.0:
                     warning.draw()
-                    win.flip()
-
-        # present stims
-        et.drawCompositeStim(fixCue + [cloud])
-        if param['cue'] == 'tone':
-            sound.play()
-        trial_info['start_stim_time'] = win.flip()
-        # send triggers
-        et.sendTriggers(trigger_info['coh_{}_{}'.format(trial_info['cur_dir'],coherence_lvls.index(trial_info['cur_coherence'])+1)],mode=response_info['resp_mode'])
-
-        # do it framewise rather than timeout based
-        resp_frames = round((timing_info['resp_timeout']-(core.getTime()-trial_info['start_stim_time']))*win_info['framerate'])
-        stim_frames = round((timing_info['stim_sleep']-(core.getTime()-trial_info['start_stim_time']))*win_info['framerate'])
-        
-        if response_info['run_mode']=='dummy':
-            dummy_resp_frame = np.random.choice(range(resp_frames))
-        for frame in range(resp_frames):        
-            if frame<stim_frames:
-                et.drawCompositeStim(fixCue + [cloud])
+                    win.flip()        
+        ##########################
+        ###  STIMULUS PHASE    ###
+        ########################## 
+        et.drawCompositeStim(fixDot+[noise])
+        trial_info['start_noise_time'] =win.flip() 
+        et.sendTriggers(trigger_info['noise_on'],mode=response_info['resp_mode'])
+        for frame in range(dot_frames):        
+            if frame<noise_frames:
+                et.drawCompositeStim(fixDot + [noise])
+                trial_info['end_stim_time']=trial_info['start_stim_time']=win.flip()    
+            elif frame<stim_frames:
+                # send trigger on the first frame
+                if frame==noise_frames:
+                    et.sendTriggers(trigger_info['coh_{}_{}'.format(trial_info['cur_dir'],coherence_lvls.index(trial_info['cur_coherence'])+1)],mode=response_info['resp_mode'])                
+                et.drawCompositeStim(fixDot + [cloud])
                 trial_info['end_stim_time'] =win.flip()    
             else:
-                if frame==stim_frames:
-                    trial_info['end_stim_time'] = core.getTime()
                 et.drawCompositeStim(fixDot)
                 win.flip()
 
@@ -306,29 +290,34 @@ for block_no in range(n_blocks):
 
             # break if go
             if response in resp_keys:
-                break  
+                break
+
         time_response = core.getTime()
+        # check for too early or too late responses
+        if frame == dot_frames-1:
+            trial_info['timeout'] = 1
+            feedback.text = 'Zu spät!'
+        elif frame <= noise_frames:
+            trial_info['early_response'] = 1
+            feedback.text = 'Zu früh!'            
 
         ##########################
         ###  POST PROCESSING   ###
         ##########################
         # start handling response variables
         trial_info['stimDur'] = trial_info['end_stim_time']-trial_info['start_stim_time']
+        trial_info['noiseDur'] = trial_info['start_stim_time']-trial_info['start_noise_time']
         trial_info['resp_time'] = time_response-trial_info['start_stim_time']
         trial_info['resp_key'] = response
         trial_info['correct'] = int(response==trial_info['corr_resp'])
 
         # show feedback if no response was given       
-        if response in resp_keys:
-            trial_info['timeout'] = 0
-        else:
-            trial_info['timeout'] = 1
-            et.sendTriggers(trigger_info['timeout_on'],mode=response_info['resp_mode'])
+        if trial_info['timeout'] == 1 or trial_info['early_response'] == 1:
+            trial_info['correct'] = np.nan
+            et.sendTriggers(trigger_info['feedback_on'],mode=response_info['resp_mode'])
             for frame in range(feed_frames):
-                timeout_scr.draw()
-                trial_info['end_feed_time'] = win.flip()
-            
-            trial_info['feedbackDur'] = trial_info['end_feed_time']-time_response
+                feedback.draw()
+                win.flip()
 
         if trial_info['correct']:
             trial_info['total_correct']+=1      

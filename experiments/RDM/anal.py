@@ -46,11 +46,11 @@ def runAnal(datFolder):
     thirdlvl.correct = thirdlvl.correct*100
 
     fig,axs = plt.subplots(2,2,constrained_layout=1)
-    axs[0,0].set(xlim=(-60,60))
+    #axs[0,0].set()
     sns.scatterplot(x="dirCoh", y="resp_key", data=thirdlvl_pf,ax = axs[0,0])
     sns.lineplot(x="dirCoh", y="resp_key", data=thirdlvl_pf,ax = axs[0,0])
     axs[0,0].axhline(50,0, ls='--')
-    axs[0,0].set(xlabel='Dot Coherence (%)', ylabel='Response right (%)')
+    axs[0,0].set(xlabel='Dot Coherence (%)', ylabel='Response right (%)', xlim=(-60,60),ylim = (0,100) )
 
     axs[0,1].set(xlim=(-60,60))
     sns.scatterplot(x="dirCoh", y="resp_time", data=thirdlvl_pf,ax = axs[0,1])
@@ -71,7 +71,6 @@ def runAnal(datFolder):
         fig.savefig(outpath)
         plt.close() 
 
-
     for idx,sub_id in enumerate(secondlvl.sub_id.unique()):
         thirdlvl_pf = secondlvl_pf[secondlvl_pf.sub_id == sub_id]
         thirdlvl = secondlvl[secondlvl.sub_id == sub_id]
@@ -79,21 +78,19 @@ def runAnal(datFolder):
         thirdlvl.correct = thirdlvl.correct*100
         
         fig,axs = plt.subplots(2,2,constrained_layout=1)
-        axs[0,0].set(xlim=(-60,60))
         sns.scatterplot(x="dirCoh", y="resp_key", data=thirdlvl_pf,ax = axs[0,0])
         sns.lineplot(x="dirCoh", y="resp_key", data=thirdlvl_pf,ax = axs[0,0])
         axs[0,0].axhline(50,0, ls='--')
-        axs[0,0].set(xlabel='Dot Coherence (%)', ylabel='Response right (%)')
+        axs[0,0].set(xlabel='Dot Coherence (%)', ylabel='Response right (%)', xlim=(-60,60),ylim = (0,100) )
 
         axs[0,1].set(xlim=(-60,60))
         sns.scatterplot(x="dirCoh", y="resp_time", data=thirdlvl_pf,ax = axs[0,1])
         sns.lineplot(x="dirCoh", y="resp_time", data=thirdlvl_pf,ax = axs[0,1])
         axs[0,1].set(xlabel='Dot Coherence (%)', ylabel='Response Time (%)')
 
-        axs[1,0].set(xlim=(0,60))
         sns.scatterplot(x="cur_coherence", y="correct", data=thirdlvl,ax = axs[1,0])
         sns.lineplot(x="cur_coherence", y="correct", data=thirdlvl,ax = axs[1,0])
-        axs[1,0].set(xlabel='Dot Coherence (%)', ylabel='Percentage Correct (%)')
+        axs[1,0].set(xlabel='Dot Coherence (%)', ylabel='Percentage correct (%)', xlim=(-60,60),ylim = (0,100) )
         axs[1,0].axhline(50,0, ls='--')
 
         axs[1,1].set(xlim=(0,60))
