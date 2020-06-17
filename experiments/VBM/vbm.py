@@ -119,9 +119,9 @@ resp_keys = [resp_left,resp_right]
 ###  SET TIMING  ###
 ####################
 # convert timing to frames
-pause_frames = round(timing_info['pause_sleep']*win_info['framerate'])
-feed_frames = round(timing_info['feed_sleep']*win_info['framerate'])
-resp_frames = round(timing_info['resp_timeout']*win_info['framerate'])
+pause_frames = round(timing_info['pause_dur']*win_info['framerate'])
+feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
+resp_frames = round(timing_info['resp_dur']*win_info['framerate'])
 # make a sequence of fix-stim jitter
 fix_seq = np.random.uniform(timing_info['fix_mean']-timing_info['fix_range'],timing_info['fix_mean']+timing_info['fix_range'], size=(n_blocks,n_trials))
 fix_frames_seq = (fix_seq*win_info['framerate']).round().astype(int)
@@ -141,14 +141,14 @@ progress_bar =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=
 progress_update =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
 progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
 progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
-fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color']) 
-leftframe = visual.Rect(win,width=stim_info['select_width'],height=stim_info['select_height'],lineColor=win_info['fg_color'],fillColor=win_info['bg_color'],pos = [-stim_info['select_x'],stim_info['select_y']])
-rightframe = visual.Rect(win,width=stim_info['select_width'],height=stim_info['select_height'],lineColor=win_info['fg_color'],fillColor=win_info['bg_color'],pos = [stim_info['select_x'],stim_info['select_y']])
-leftbar = visual.Rect(win,width=stim_info['select_width'],height=stim_info['select_height'],lineColor=win_info['fg_color'],fillColor=win_info['fg_color'],pos = [-stim_info['select_x'],stim_info['select_y']])
-rightbar = visual.Rect(win,width=stim_info['select_width'],height=stim_info['select_height'],lineColor=win_info['fg_color'],fillColor=win_info['fg_color'],pos = [stim_info['select_x'],stim_info['select_y']])
-selectbar = visual.Rect(win,width=stim_info['select_width']*1.2,height=stim_info['select_height']*1.5,lineColor=win_info['fg_color'],fillColor=win_info['bg_color'],pos = [stim_info['select_x'],-0.1*stim_info['select_height']])
-leftProb = visual.TextStim(win,text='',color=win_info['fg_color'], pos = [-stim_info['select_x'],-stim_info['select_x']] )
-rightProb = visual.TextStim(win,text='',color=win_info['fg_color'], pos = [stim_info['select_x'],-stim_info['select_x']])
+fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size = 18) 
+leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=win_info['bg_color'],pos = [-stim_info['bar_x'],stim_info['bar_y']])
+rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=win_info['bg_color'],pos = [stim_info['bar_x'],stim_info['bar_y']])
+leftbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=win_info['fg_color'],fillColor=win_info['fg_color'])
+rightbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=win_info['fg_color'],fillColor=win_info['fg_color'])
+selectbar = visual.Rect(win,width=stim_info['bar_width']*1.4,height=stim_info['bar_height']*1.4,lineColor=win_info['fg_color'],fillColor=win_info['bg_color'])
+leftProb = visual.TextStim(win,height=15,color=win_info['fg_color'],pos=[-stim_info['bar_x'],-0.7*stim_info['bar_height']+stim_info['bar_y']] )
+rightProb = visual.TextStim(win,height=15,color=win_info['fg_color'],pos=[stim_info['bar_x'],-0.7*stim_info['bar_height']+stim_info['bar_y']])
 timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
 
 # set Mouse to be invisible
@@ -166,7 +166,9 @@ feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,pr
 ######################
 for block_no in range(n_blocks):
     trial_info['block_no']=block_no+1
-    
+    trial_info['block_points'] = 0
+    progress_bar.width=bar['width']
+    progress_bar.pos[0] = -bar['horiz_dist']         
     # start block message
     if response_info['run_mode'] != 'dummy':
         while True:
@@ -192,13 +194,16 @@ for block_no in range(n_blocks):
         # reset variables
         reward=0
         response =None
+        trial_info['timeout'] = 0
         leftbar.fillColor = win_info['fg_color']
         rightbar.fillColor = win_info['fg_color']
+
+
         # set trial variables
         trial_info['trial_no'] = trial_no+1
         trial_info['trial_count']+=1
-        trial_info['fix_sleep'] = fix_seq[block_no,trial_no]
-        trial_info['select_sleep'] = select_seq[block_no,trial_no]
+        trial_info['fix_dur'] = fix_seq[block_no,trial_no]
+        trial_info['select_dur'] = select_seq[block_no,trial_no]
         trial_info['corr_resp'] = resp_keys[int((trial_seq.iloc[trial_no].CorrectLeftRight)-1)]
         trial_info['mag_left'] = trial_seq.iloc[trial_no].mag1
         trial_info['mag_right']= trial_seq.iloc[trial_no].mag2
@@ -214,10 +219,10 @@ for block_no in range(n_blocks):
         fix_frames = fix_frames_seq[block_no,trial_no]
         select_frames = select_frames_seq[block_no,trial_no]
         # set stimulus
-        leftbar.height = 10*trial_info['mag_left']
-        leftbar.pos = [-stim_info['select_x'],-0.5*stim_info['select_height']+5*trial_info['mag_left']]
-        rightbar.height = 10* trial_info['mag_right']
-        rightbar.pos = [stim_info['select_x'],-0.5*stim_info['select_height']+5*trial_info['mag_right']]
+        leftbar.height = 0.1*stim_info['bar_height']*trial_info['mag_left']
+        leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
+        rightbar.height =0.1*stim_info['bar_height']* trial_info['mag_right']
+        rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
         leftProb.text =  '{:02d}%'.format(int(trial_info['prob_left']))
         rightProb.text = '{:02d}%'.format(int(trial_info['prob_right']))
 
@@ -228,7 +233,6 @@ for block_no in range(n_blocks):
         for frame in range(fix_frames):
             et.drawCompositeStim(fix_phase)
             trial_info['start_stim_time']=win.flip()  
-        trial_info['fixDur'] =  core.getTime()-trial_info['start_trial_time']
         
         # check whether a button in the response box is currently pressed & present a warning if so
         if response_info['resp_mode']=='keyboard':
@@ -267,6 +271,9 @@ for block_no in range(n_blocks):
             if response in resp_keys:
                 break  
 
+        if frame == resp_frames-1:
+            trial_info['timeout'] = 1
+
         ##########################
         ###  POST PROCESSING   ###
         ##########################
@@ -276,52 +283,46 @@ for block_no in range(n_blocks):
         trial_info['resp_key'] = response
         trial_info['correct'] = int(response==trial_info['corr_resp'])
         
+        # define incremental reward value and define selection box
         if trial_info['resp_key'] == resp_keys[0]:
-            selectbar.pos = [-stim_info['select_x'], -0.1*stim_info['select_height']]
+            selectbar.pos = [-stim_info['bar_x'], stim_info['bar_y']-0.15*stim_info['bar_height']]
+            if trial_info['rew_left']:
+                reward = trial_info['mag_left'] *trial_info['rew_left']
         elif trial_info['resp_key'] == resp_keys[1]:
-            selectbar.pos = [stim_info['select_x'], -0.1*stim_info['select_height']]
+            selectbar.pos = [stim_info['bar_x'], stim_info['bar_y']-0.15*stim_info['bar_height']]
+            if trial_info['rew_right']:
+                reward = trial_info['mag_right'] *trial_info['rew_right']
+        trial_info['block_points'] += reward
 
         # draw selection phase if response given
-        if response in resp_keys:
-            trial_info['timeout'] = 0
+        if not trial_info['timeout']:
             et.drawCompositeStim(select_phase)
             trial_info['start_select_time'] = win.flip()  
             et.sendTriggers(trigger_info['start_select'],mode=response_info['resp_mode'])
             for frame in range(select_frames):
                 et.drawCompositeStim(select_phase)
                 win.flip()  
-        else:
-            trial_info['timeout'] = 1
+        elif trial_info['timeout'] == 1:
             timeout_screen.draw() 
             trial_info['start_select_time'] = win.flip()
             et.sendTriggers(trigger_info['timeout'],mode=response_info['resp_mode'])   
             for frame in range(select_frames-1):
                 timeout_screen.draw() 
                 win.flip() 
-        trial_info['selectDur'] =  core.getTime()-trial_info['start_select_time']
-
-            # define incremental reward value
-        if trial_info['resp_key']==resp_keys[0] and trial_info['rew_left']:
-            reward = trial_info['mag_left']
-        elif trial_info['resp_key']==resp_keys[1] and trial_info['rew_right']:
-            reward = trial_info['mag_right']
-        trial_info['total_points'] += reward
         
         # show update bar
         progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.75*reward,progress_bar_start.pos[1])
-        progress_update.width =1.5*reward
+        progress_update.width =2*reward
         progress_update.fillColor =bar['color']
         progress_update.lineColor =bar['color']
-        progress_bar.width += 1.5*reward
-        progress_bar.pos[0] += 0.75*reward
-        if progress_bar.width > 2*bar['horiz_dist']:
+        progress_bar.width += 2*reward
+        progress_bar.pos[0] += 1*reward
+        # if bar out of bounds reset
+        if progress_bar.width > 2*bar['horiz_dist'] or progress_bar.width < bar['width']:
             progress_bar.width=bar['width']
             progress_bar.pos[0] = -bar['horiz_dist']                
-        elif progress_bar.width < bar['width']:
-            progress_bar.width=bar['width']
-            progress_bar.pos[0] = -bar['horiz_dist']
 
-        # draw feedback_phase phase
+        # draw feedback_phase 
         if trial_info['rew_left'] == 1:
             leftbar.fillColor = bar['corr_color']
         else:
@@ -334,15 +335,14 @@ for block_no in range(n_blocks):
         if trial_info['timeout'] ==0:
             trial_info['start_feed_time'] = core.getTime()
             et.drawCompositeStim(feedback_phase)
-            trial_info['start_feed_time'] = win.flip()
+            trial_info['end_trial_time'] = win.flip()
             et.sendTriggers(trigger_info['start_feed'],mode=response_info['resp_mode'])
             for frame in range(feed_frames):
                 et.drawCompositeStim(feedback_phase)
-                win.flip()
-        trial_info['end_trial_time'] = core.getTime()
-        trial_info['feedDur'] =  trial_info['end_trial_time']-trial_info['start_feed_time']
+                trial_info['end_trial_time'] =win.flip()
             
-            # logging
+        trial_info['total_points'] += reward
+        # logging
         if trial_info['trial_count'] == 1:
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
         data_logger.writeTrial(trial_info)

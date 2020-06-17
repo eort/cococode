@@ -9,10 +9,7 @@ import sys, os # to interact with the operating system
 from datetime import datetime # to get the current time
 import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
-import threading
-from IPython import embed as shell # for debugging
-import queue
-
+#from IPython import embed as shell # for debugging
 
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
@@ -135,7 +132,7 @@ startBlock = visual.TextStim(win,text=stim_info["blockStart"],color='white',wrap
 endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color='white',wrapWidth=win.size[0])
 endExp = visual.TextStim(win,text=stim_info["exp_outro"],color='white',wrapWidth=win.size[0])
 warning = visual.TextStim(win,text=stim_info["warning"],color='white',wrapWidth=win.size[0])
-fixDot = et.fancyFixDot(win, fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=18) 
+fixDot = et.fancyFixDot(win, fg_color = win_info['fg_color'],bg_color = win_info['bg_color']) 
 cloud = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle')
 noise = visual.DotStim(win,units = 'pix',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',coherence=0)
 feedback = visual.TextStim(win,text='',color='white',wrapWidth=win.size[0])
@@ -148,7 +145,7 @@ feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
 fix_frames = round(timing_info['fix_dur']*win_info['framerate'])
 stim_frames = round(timing_info['stim_dur']*win_info['framerate'])
 noise_seq = np.random.uniform(noise_mean-timing_info['noise_range'],noise_mean+timing_info['noise_range'], size=(n_blocks,n_trials+param['n_zero']))
-
+   
 ###########################
 ###  START BLOCK LOOP # ###
 ###########################
@@ -205,6 +202,21 @@ for block_no in range(n_blocks):
     # send trigger
     et.sendTriggers(trigger_info['block_on'],mode=response_info['resp_mode'])
     trial_info['block_no']=block_no+1
+
+
+    l = []
+    for i in range(300):
+        t0 = core.getTime()
+        response = et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys)
+        l.append(t0)
+    ll = np.array(l)
+    lll = ll.shift(1)
+    llll = lll-ll
+    print(llll)
+
+
+
+
 
     ##########################
     ###  START TRIAL LOOP  ###
@@ -265,18 +277,12 @@ for block_no in range(n_blocks):
                     win.flip()        
         ##########################
         ###  STIMULUS PHASE    ###
-        ##########################
-        response = None
-        in_queue = queue.Queue()
-        trial_info['cycles'] = []
+        ########################## 
         et.drawCompositeStim(fixDot+[noise])
         trial_info['start_noise_time'] =win.flip() 
         et.sendTriggers(trigger_info['noise_on'],mode=response_info['resp_mode'])
-        respThread =  threading.Thread(target = et.captureResponse,kwargs={'mode':response_info['resp_mode'],'keys':resp_keys,'in_queue':in_queue},daemon = True)
-        respThread.start()
         for frame in range(dot_frames):        
             if frame<noise_frames:
-                trial_info['cycles'].append(core.getTime())
                 et.drawCompositeStim(fixDot + [noise])
                 trial_info['end_stim_time']=trial_info['start_stim_time']=win.flip()    
             elif frame<stim_frames:
@@ -295,14 +301,11 @@ for block_no in range(n_blocks):
                     response = np.random.choice(resp_keys)
                 else: response = None
             else:
-                pass#response = et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys)
+                response = et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys)
 
             # break if go
-            response = in_queue.get(False)
             if response in resp_keys:
                 break
-            
-        print(response)
 
         time_response = core.getTime()
         # check for too early or too late responses

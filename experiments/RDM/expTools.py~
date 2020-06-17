@@ -11,23 +11,19 @@ def prepDirectories():
         if not os.path.exists(arg):
               os.makedirs(arg)   
 
-def captureResponse(mode='meg',keys = ['m',None],in_queue=None):
+
+def captureResponse(mode='meg',keys = ['m',None]):
     """
     Depending on the machine the experiment is running on, it either captures response from
     parallel port (mode='meg'), randomly (mode='dummy') or by key press (keyboard)
-    """
-
-    if mode=='meg':     
+    """    
+    if mode=='meg':
         return os.system("/usr/local/bin/pin 0x379")
     elif mode=='keyboard':
-        #core.wait(2)
         resp = event.getKeys()
-        if in_queue == None:
-            if len(resp)>0: return resp[-1]
-            return None   
-        else:
-            if len(resp)>0: in_queue.put(resp[-1])
-            in_queue.put(None)
+        if len(resp)>0: return resp[-1]
+        return None   
+
 def drawCompositeStim(stim_list):
     """
     Convenience function for readability. Loops over the list and draws all of it. 
