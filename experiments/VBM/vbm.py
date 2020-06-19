@@ -104,16 +104,8 @@ sequence.prob1 = 100*sequence.prob1
 sequence.prob2 = 100*sequence.prob2
 # shuffle
 sequence = sequence.sample(frac=1).reset_index(drop=True)
-
-if response_info['resp_mode'] == 'meg':
-    resp_left = response_info['resp1_button']
-    resp_right = response_info['resp2_button']
-    pause_resp = response_info['pause_button']
-else:
-    resp_left = response_info['resp1_key']
-    resp_right = response_info['resp2_key']
-    pause_resp = response_info['pause_key']
-resp_keys = [resp_left,resp_right]
+# response
+resp_keys = [response_info['resp_left'],response_info['resp_right']]
 
 ####################
 ###  SET TIMING  ###
@@ -175,8 +167,8 @@ for block_no in range(n_blocks):
             startBlock.text = stim_info["startBlock_text"].format(block_no+1)
             startBlock.draw()
             trial_info['start_block_time'] = win.flip()                        
-            cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
-            if cont == pause_resp:
+            cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
+            if cont == response_info['pause_resp']:
                 break
         et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
     # get trial info for entire block
@@ -197,7 +189,6 @@ for block_no in range(n_blocks):
         trial_info['timeout'] = 0
         leftbar.fillColor = win_info['fg_color']
         rightbar.fillColor = win_info['fg_color']
-
 
         # set trial variables
         trial_info['trial_no'] = trial_no+1
@@ -364,8 +355,8 @@ if response_info['run_mode'] != 'dummy':
     while True:
         endExp.draw()
         win.flip()
-        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
-        if cont == pause_resp:
+        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
+        if cont == response_info['pause_resp']:
             break
 #cleanup
 et.finishExperiment(win,data_logger,show_results=logging_info['show_results'])

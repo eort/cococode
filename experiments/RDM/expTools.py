@@ -18,9 +18,9 @@ def captureResponse(mode='meg',keys = ['m',None],in_queue=None):
     """
 
     if mode=='meg':     
-        return os.system("/usr/local/bin/pin 0x379")
+        #return os.system("/usr/local/bin/pin 0x379")
+        in_queue.put(os.system("/usr/local/bin/pin 0x379"))
     elif mode=='keyboard':
-        #core.wait(2)
         resp = event.getKeys()
         if in_queue == None:
             if len(resp)>0: return resp[-1]
@@ -28,6 +28,7 @@ def captureResponse(mode='meg',keys = ['m',None],in_queue=None):
         else:
             if len(resp)>0: in_queue.put(resp[-1])
             in_queue.put(None)
+
 def drawCompositeStim(stim_list):
     """
     Convenience function for readability. Loops over the list and draws all of it. 

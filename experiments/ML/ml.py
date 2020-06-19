@@ -97,16 +97,8 @@ trial_info = {"sub_id":input_dict['sub_id'],
 for vari in logging_info['logVars']:
     trial_info[vari] = param[vari]
 
-# set up response keys
-if response_info['resp_mode'] == 'meg':
-    resp_left = response_info['resp1_button']
-    resp_right = response_info['resp2_button']
-    pause_resp = response_info['pause_button']
-else:
-    resp_left = response_info['resp1_key']
-    resp_right = response_info['resp2_key']
-    pause_resp = response_info['pause_key']
-resp_keys = [resp_left,resp_right]
+# set response keys
+resp_keys = [response_info['resp_left'],response_info['resp_right']]
 
 ###########################################
 ###  PREPARE EXPERIMENTAL SEQUENCE     ####
@@ -132,7 +124,7 @@ else:
 # create building blocks of possible location/validity combinations 
 # currently it only works with 80-20%. Having 75 oder 70 will require reprogramming to allow for perfectly balanced trials
 # proper ratio of valid and invalid trials (highlikely color will bring reward)
-reward_ratio = np.array([1]*round(reward_info['high_prob']*10)+[0]*round((1-reward_info['high_prob'])*10))
+reward_ratio = np.array([1]*round(reward_info['high_prob']*5)+[0]*round((1-reward_info['high_prob'])*5))
 # extend this balanced ratio to location (left,right)
 # 0 unreward left, 1 rewarded left, 2 unrewarded right, rewarded right
 reward_ratio_both_sides = np.concatenate((reward_ratio,reward_ratio+2))
@@ -180,7 +172,7 @@ feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
 resp_frames = round(timing_info['resp_dur']*win_info['framerate'])
 fix_frames_seq = (fix_seq*win_info['framerate']).round().astype(int)
 select_frames_seq = (select_seq*win_info['framerate']).round().astype(int)
-
+ 
 ##################################
 ###      MAKE STIMULI          ###
 ##################################
@@ -202,8 +194,8 @@ selectbox = visual.Rect(win,width=stim_info['box_edge']*1.25,height=stim_info['b
 leftMag = visual.TextStim(win,color=win_info['fg_color'],pos=[-stim_info['box_x'],stim_info['box_y']])
 rightMag = visual.TextStim(win,color=win_info['fg_color'],pos=[stim_info['box_x'],stim_info['box_y']])
 timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
-smiley = visual.ImageStim(win,'smiley.png',contrast=-1,size=[30,30]) # good feedback
-frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[30,30]) # bad feedback
+smiley = visual.ImageStim(win,'smiley.png',contrast=-1,size=[stim_info['box_edge']-10,stim_info['box_edge']-10]) # good feedback
+frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[stim_info['box_edge']-10,stim_info['box_edge']-10]) # bad feedback
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -242,8 +234,8 @@ for trial_no in range(trial_seq.shape[0]):
                 startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'])
                 startBlock.draw()
                 trial_info['start_block_time'] = win.flip()                        
-                cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
-                if cont == pause_resp:
+                cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
+                if cont == response_info['pause_resp']:
                     break
             et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
 
@@ -371,7 +363,7 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################
     ###  FEEDBACK PHASE    ###
     ##########################    
-    progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.75*reward,progress_bar_start.pos[1])
+    progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ reward,progress_bar_start.pos[1])
     progress_update.width =2*reward
     progress_bar.width += 2*reward
     progress_bar.pos[0] += 1*reward
@@ -384,7 +376,7 @@ for trial_no in range(trial_seq.shape[0]):
         feedback = smiley
     else:
         feedback = frowny
-    
+
     trial_info['start_feed_time'] = core.getTime()
     if not trial_info['timeout']:
         et.drawCompositeStim(feedback_phase + [feedback])
@@ -418,15 +410,14 @@ for trial_no in range(trial_seq.shape[0]):
         # clear any pending key presses
         event.clearEvents()
 
-
 # end of experiment message
 if response_info['run_mode'] != 'dummy':
     endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
     while True:
         endExp.draw()
         win.flip()
-        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [pause_resp])    
-        if cont == pause_resp:
+        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
+        if cont == response_info['pause_resp']:
             break
 #cleanup
 et.finishExperiment(win,data_logger,show_results=True)
