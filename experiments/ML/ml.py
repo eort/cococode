@@ -71,17 +71,17 @@ if sess_type!=input_dict['sess_type']:
 ###########################################
 
 # prepare the logfile (general log file, not data log file!) and directories
-et.prepDirectories()
 logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
-log_file = os.path.join('log',logFileID+'.log')
-lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
+log_file = os.path.join('log',param['exp_id'],logFileID+'.log')
 # create a output file that collects all variables 
 output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
 # save the current settings per session, so that the data files stay slim
 settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
-if not os.path.exists(os.path.dirname(settings_file)): 
-    os.makedirs(os.path.dirname(settings_file))
+for f in [settings_file,output_file,log_file]:
+    if not os.path.exists(os.path.dirname(f)): 
+        os.makedirs(os.path.dirname(f))
 os.system('cp {} {}'.format(jsonfile,settings_file))
+lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
@@ -183,10 +183,10 @@ win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 endBlock = visual.TextStim(win,text= stim_info['endBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
-progress_bar =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
-progress_update =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
-progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
-progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
+progress_bar =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
+progress_update =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
+progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
+progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
 fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size=18) 
 leftbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=win_info['bg_color'],pos = [-stim_info['box_x'],stim_info['box_y']])
 rightbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=win_info['bg_color'],pos = [stim_info['box_x'],stim_info['box_y']])
@@ -362,11 +362,12 @@ for trial_no in range(trial_seq.shape[0]):
     
     ##########################
     ###  FEEDBACK PHASE    ###
-    ##########################    
-    progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ reward,progress_bar_start.pos[1])
-    progress_update.width =2*reward
-    progress_bar.width += 2*reward
-    progress_bar.pos[0] += 1*reward
+    ########################## 
+    if reward:   
+        progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.95*reward,progress_bar_start.pos[1])
+        progress_update.width =1.9*reward
+        progress_bar.width += 1.9*reward
+        progress_bar.pos[0] += 0.95*reward
     if progress_bar.width > 2*bar['horiz_dist'] or progress_bar.width < bar['width']:
         progress_bar.width=bar['width']
         progress_bar.pos[0] = -bar['horiz_dist']                

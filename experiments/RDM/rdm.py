@@ -72,20 +72,19 @@ if sess_type!=input_dict['sess_type']:
 ###########################################
 
 # prepare the logfile (general log file, not data log file!) and directories
-et.prepDirectories()
 logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
-log_file = os.path.join('log',logFileID+'.log')
-lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
+log_file = os.path.join('log',param['exp_id'],logFileID+'.log')
 # create a output file that collects all variables 
 output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
 # one more outputfile for the dot position per frame block,trial
 position_file = os.path.join('positions',param['exp_id'],logFileID+'.csv')
-
 # save the current settings per session, so that the data files stay slim
 settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
-if not os.path.exists(os.path.dirname(settings_file)): 
-    os.makedirs(os.path.dirname(settings_file))
+for f in [log_file,position_file,settings_file,output_file]:
+    if not os.path.exists(os.path.dirname(f)): 
+        os.makedirs(os.path.dirname(f))
 os.system('cp {} {}'.format(jsonfile,settings_file))
+lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
 # init logger: update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
@@ -115,8 +114,8 @@ noise_mean = input_dict['noise_duration']
 resp_keys = [response_info['resp_left'],response_info['resp_right']]
 
 # prepare a dataframe specifically for the stimulus positions
-indices=pd.MultiIndex.from_tuples([(a+1,b+1) for a in range(n_blocks) for b in range(n_trials)], names=['block_no', 'trial_no'])
-all_positions = pd.DataFrame(columns= ['positions'], index=indices) 
+indices=pd.MultiIndex.from_tuples([(a+1,b+1) for a in range(n_blocks) for b in range(n_trials+param['n_zero'])], names=['block_no', 'trial_no'])
+all_positions = pd.DataFrame(columns= {'positions':np.nan}, index=indices) 
 ################################
 ###    MAKE STIMULI          ###
 ################################
@@ -300,6 +299,7 @@ for block_no in range(n_blocks):
             if response_info['run_mode']=='dummy':
                 if dummy_resp_frame == frame:
                     response = np.random.choice(resp_keys)
+                    break
                 else: response = None
             #else:
                 #response = et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys)
@@ -346,8 +346,8 @@ for block_no in range(n_blocks):
         trial_info['meanFrame_duration'] = np.mean(np.diff(cycles))
         trial_info['minFrame_duration'] = np.min(np.diff(cycles))
         trial_info['maxFrame_duration'] = np.max(np.diff(cycles))
-
         all_positions.loc[(trial_info['block_no'],trial_info['trial_no']),'positions'] = dot_positions
+
         ##########################
         ###  LOGGING  PHASE    ###
         ########################## 

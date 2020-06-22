@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import json
 import os,sys
 import glob
-from IPython import embed as shell
-
 
 def runAnal(datFolder):
     if not os.path.isfile(datFolder):
@@ -26,7 +24,6 @@ def runAnal(datFolder):
     allDat['resp_time'] = allDat['resp_time'] *1000
 
     #aggregate
-    shell()
     # plot correct and response time
     firstlvl= allDat.groupby(['sub_id','sess_id','cur_coherence'])['correct','resp_time'].mean().reset_index() # time between successive switches
     secondlvl= firstlvl.groupby(['sub_id','cur_coherence'])['correct','resp_time'].mean().reset_index() # time between successive switches

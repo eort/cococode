@@ -47,6 +47,7 @@ bar = stim_info['progress_bar']                   # trigger for defined events
 ###         HANDLE INPUT DIALOG        ####
 ###########################################
 # dialog with participants: Retrieve Subject number, session number, and practice
+#et.prepDirectories()
 input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
 inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
 # check for input
@@ -69,17 +70,18 @@ if sess_type!=input_dict['sess_type']:
 ###           SET UP OVERHEAD          ####
 ###########################################
 # prepare the logfile (general log file, not data log file!) and directories
-et.prepDirectories()
 logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
-log_file = os.path.join('log',logFileID+'.log')
-lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
+log_file = os.path.join('log',param['exp_id'],logFileID+'.log')
+
 # create a output file that collects all variables 
 output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
 # save the current settings per session, so that the data files stay slim
 settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
-if not os.path.exists(os.path.dirname(settings_file)): 
-    os.makedirs(os.path.dirname(settings_file))
-os.system('cp {} {}'.format(jsonfile,settings_file))
+for f in [log_file,output_file,settings_file]:
+    if not os.path.exists(os.path.dirname(f)): 
+        os.makedirs(os.path.dirname(f))
+os.system('cp {} {}'.format(jsonfile,f))
+lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
@@ -129,10 +131,10 @@ win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 endBlock = visual.TextStim(win,text= stim_info['endBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
-progress_bar =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
-progress_update =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
-progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
-progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=bar['color'],fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
+progress_bar =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
+progress_update =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
+progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
+progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
 fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size = 18) 
 leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=win_info['bg_color'],pos = [-stim_info['bar_x'],stim_info['bar_y']])
 rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=win_info['bg_color'],pos = [stim_info['bar_x'],stim_info['bar_y']])
@@ -302,16 +304,15 @@ for block_no in range(n_blocks):
                 win.flip() 
         
         # show update bar
-        progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.75*reward,progress_bar_start.pos[1])
-        progress_update.width =2*reward
-        progress_update.fillColor =bar['color']
-        progress_update.lineColor =bar['color']
-        progress_bar.width += 2*reward
-        progress_bar.pos[0] += 1*reward
-        # if bar out of bounds reset
+        if reward: 
+            progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ reward,progress_bar_start.pos[1])
+            progress_update.width =2*reward
+            progress_bar.width += 2*reward
+            progress_bar.pos[0] += 1*reward
+            # if bar out of bounds reset
         if progress_bar.width > 2*bar['horiz_dist'] or progress_bar.width < bar['width']:
             progress_bar.width=bar['width']
-            progress_bar.pos[0] = -bar['horiz_dist']                
+            progress_bar.pos[0]=-bar['horiz_dist']                
 
         # draw feedback_phase 
         if trial_info['rew_left'] == 1:
