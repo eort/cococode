@@ -144,7 +144,6 @@ feedback = visual.TextStim(win,text='',color='white',wrapWidth=win.size[0],units
 pause_frames = round(timing_info['pause_dur']*win_info['framerate'])
 feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
 fix_frames = round(timing_info['fix_dur']*win_info['framerate'])
-stim_frames = round(timing_info['stim_dur']*win_info['framerate'])
 noise_seq = np.random.uniform(noise_mean-timing_info['noise_range'],noise_mean+timing_info['noise_range'], size=(n_blocks,n_trials+param['n_zero']))
 
 ###########################
@@ -214,9 +213,7 @@ for block_no in range(n_blocks):
             et.finishExperiment(win,data_logger)
 
         # for timing tests, delete later
-        trial_info['stimDur']= np.nan
         trial_info['end_feed_time']= np.nan
-        trial_info['feedbackDur']= np.nan
         trial_info['early_response'] = 0
         trial_info['timeout']=0
         # draw duration of fix cross from predefined distribution
@@ -235,8 +232,9 @@ for block_no in range(n_blocks):
         else:
             cloud.dir = None
 
-        dot_frames = int(round((trial_info['noise_dur']+timing_info['resp_dur'])*win_info['framerate']))
         noise_frames = int(round(trial_info['noise_dur']*win_info['framerate']))
+        stim_frames = noise_frames+int(round(timing_info['stim_dur']*win_info['framerate']))
+        dot_frames = noise_frames+int(timing_info['resp_dur']*win_info['framerate'])
         # choose a dummy response mode response frame
         if response_info['run_mode']=='dummy':
             dummy_resp_frame = max(noise_frames+1,np.random.choice(range(dot_frames)))
@@ -271,7 +269,6 @@ for block_no in range(n_blocks):
         et.drawCompositeStim(fixDot+[noise])
         et.sendTriggers(trigger_info['noise_on'],mode=response_info['resp_mode'])
         trial_info['start_noise_time'] =win.flip() 
-        
         for frame in range(dot_frames):     
             # start a parallel thread in the background that polls responses and doesnt interfere with the RDK
             respThread =  threading.Thread(target=et.captureResponse,kwargs={'mode':response_info['resp_mode'],'keys':resp_keys,'in_queue':in_queue},daemon=1)
