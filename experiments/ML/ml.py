@@ -107,8 +107,11 @@ resp_keys = [response_info['resp_left'],response_info['resp_right']]
 rgb_dict = stim_info['stim_colors']
 
 # select colors from predefined options based on sub id
-color_idx = [(x,y,z) for (x,y,z) in it.product(range(3),range(3),range(3)) if x!=y and y!=z and x!=z][trial_info['sub_id']%6]
-colors = stim_info['color_combinations'][color_idx[trial_info['sess_id']-1]]
+if trial_info['sess_type']!='screening':
+    color_idx = [(x,y,z) for (x,y,z) in it.product(range(3),range(3),range(3)) if x!=y and y!=z and x!=z][trial_info['sub_id']%6]
+    colors = stim_info['color_combinations'][color_idx[trial_info['sess_id']-1]]
+else:
+    colors = stim_info['color_combinations'][0]
 np.random.shuffle(colors)
 
 # counterbalance the order of volatile and stable blocks across subs and sessions
