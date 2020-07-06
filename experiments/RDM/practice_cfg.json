@@ -36,7 +36,7 @@
                                 "signalDots":"same",
                                 "noiseDots":"direction"}, 
                 "exp_outro":"Das war's!\nVielen Dank für deine Teilnahme.",
-                "blockStart":"Block {} kann jetzt beginnen!\nDrücke die Starttaste um weiter zu machen.",
+                "blockStart":"Block {} von {} kann jetzt beginnen!\nDrücke die Starttaste um weiter zu machen.",
                 "blockEnd":"Block {} ist vorbei!\nDu hast in dieser Runde {:d}% aller Trials richtig beantwortet.\nNimm dir eine kleine Pause.",
                 "warning":"Bitte halte keine der Tasten gedrückt!"},
     "logging_info":{"skeleton_file":"sub-{:02d}_sess-{:02d}_task-{}_{}",

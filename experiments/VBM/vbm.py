@@ -132,7 +132,7 @@ startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_inf
 endBlock = visual.TextStim(win,text= stim_info['endBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 progress_bar =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
-progress_update =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
+progress_update =visual.Rect(win,height=bar['height'],lineColor=None,fillColor=bar['color'])
 progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
 progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
 fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size = 18) 
@@ -161,6 +161,8 @@ feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,pr
 for block_no in range(n_blocks):
     trial_info['block_no']=block_no+1
     trial_info['block_points'] = 0
+    reward_text = 'leider keine'
+
     progress_bar.width=bar['width']
     progress_bar.pos[0] = -bar['horiz_dist']         
     # start block message
@@ -172,7 +174,7 @@ for block_no in range(n_blocks):
             cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
             if cont == response_info['pause_resp']:
                 break
-        et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
+        et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'],prePad = 0.1)
     # get trial info for entire block
     trial_seq = sequence[block_no*n_trials:(block_no+1)*n_trials]
 
@@ -291,14 +293,14 @@ for block_no in range(n_blocks):
         if not trial_info['timeout']:
             et.drawCompositeStim(select_phase)
             trial_info['start_select_time'] = win.flip()  
-            et.sendTriggers(trigger_info['start_select'],mode=response_info['resp_mode'])
+            #et.sendTriggers(trigger_info['start_select'],mode=response_info['resp_mode'])
             for frame in range(select_frames):
                 et.drawCompositeStim(select_phase)
                 win.flip()  
         elif trial_info['timeout'] == 1:
             timeout_screen.draw() 
             trial_info['start_select_time'] = win.flip()
-            et.sendTriggers(trigger_info['timeout'],mode=response_info['resp_mode'])   
+            et.sendTriggers(trigger_info['timeout'],mode=response_info['resp_mode'],prePad=0.01)   
             for frame in range(select_frames-1):
                 timeout_screen.draw() 
                 win.flip() 
@@ -310,9 +312,13 @@ for block_no in range(n_blocks):
             progress_bar.width += 2*reward
             progress_bar.pos[0] += 1*reward
             # if bar out of bounds reset
-        if progress_bar.width > 2*bar['horiz_dist'] or progress_bar.width < bar['width']:
+        if progress_bar.width > 2*bar['horiz_dist']:
+            reward_text = '200'
+            trial_info['total_points'] += 200
             progress_bar.width=bar['width']
-            progress_bar.pos[0]=-bar['horiz_dist']                
+            progress_bar.pos[0]=-bar['horiz_dist']
+            progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ reward,progress_bar_start.pos[1])
+            progress_update.width = 0              
 
         # draw feedback_phase 
         if trial_info['rew_left'] == 1:
@@ -324,16 +330,16 @@ for block_no in range(n_blocks):
         else:
             rightbar.fillColor = bar['incorr_color']
  
-        if trial_info['timeout'] ==0:
-            trial_info['start_feed_time'] = core.getTime()
+        trial_info['start_feed_time'] = core.getTime()
+        if trial_info['timeout'] ==0:    
             et.drawCompositeStim(feedback_phase)
-            trial_info['end_trial_time'] = win.flip()
+            win.flip()
             et.sendTriggers(trigger_info['start_feed'],mode=response_info['resp_mode'])
             for frame in range(feed_frames):
                 et.drawCompositeStim(feedback_phase)
-                trial_info['end_trial_time'] =win.flip()
-            
-        trial_info['total_points'] += reward
+                win.flip()
+        trial_info['end_trial_time'] = core.getTime()
+        
         # logging
         if trial_info['trial_count'] == 1:
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
@@ -343,8 +349,8 @@ for block_no in range(n_blocks):
     if response_info['resp_mode']=='keyboard':
         event.clearEvents()
     # show text at the end of a block 
-    if response_info['run_mode'] != 'dummy':      
-        endBlock.text = stim_info["endBlock_text"].format(block_no+1,int(trial_info['total_points']))
+    if response_info['run_mode'] != 'dummy':
+        endBlock.text = stim_info["endBlock_text"].format(block_no+1,reward_text)
         for frame in range(pause_frames):
             endBlock.draw()
             win.flip() 

@@ -50,11 +50,12 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
         anal.runAnal(dataLogger.outpath)
     core.quit()
 
-def sendTriggers(trigger,mode=None):
+def sendTriggers(trigger,mode=None,prePad = 0):
     """
     make code easier to read by combining sending triggers with the timeout 
     """
     if mode == 'meg':
+        core.wait(prePad)
         os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
         core.wait(0.01)
         os.system("/usr/local/bin/parashell 0x378 0")   

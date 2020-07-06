@@ -10,7 +10,7 @@ def runAnal(datFolder):
         inFiles = sorted(glob.glob(datFolder + '/*.csv'))
         pdList = [pd.read_csv(f) for f in inFiles]
         allDat = pd.concat(pdList, axis=0, ignore_index=True)
-        outpath=os.path.join(datFolder,'group_results.pdf')
+        outpath=os.path.join(datFolder,'group_results.png')
     else:
         allDat = pd.read_csv(datFolder)
         outpath= datFolder.replace('csv','png')
@@ -22,7 +22,7 @@ def runAnal(datFolder):
     allDat['dirCoh']  = allDat['direction'] * allDat['cur_coherence']
     allDat = allDat.dropna(subset=['resp_key'])
     allDat['resp_time'] = allDat['resp_time'] *1000
-
+    allDat['correct'].loc[allDat['cur_coherence'] == 0.0] = 0.5 
     #aggregate
     # plot correct and response time
     firstlvl= allDat.groupby(['sub_id','sess_id','cur_coherence'])['correct','resp_time'].mean().reset_index() # time between successive switches
@@ -57,7 +57,7 @@ def runAnal(datFolder):
     axs[1,0].set(xlim=(0,60))
     sns.scatterplot(x="cur_coherence", y="correct", data=thirdlvl,ax = axs[1,0])
     sns.lineplot(x="cur_coherence", y="correct", data=thirdlvl,ax = axs[1,0])
-    axs[1,0].set(xlabel='Dot Coherence (%)', ylabel='Percentage Correct (%)')
+    axs[1,0].set(xlabel='Dot Coherence (%)', ylabel='Percentage Correct (%)',ylim = (0,100) )
     axs[1,0].axhline(50,0, ls='--')
 
     axs[1,1].set(xlim=(0,60))
@@ -87,7 +87,7 @@ def runAnal(datFolder):
 
         sns.scatterplot(x="cur_coherence", y="correct", data=thirdlvl,ax = axs[1,0])
         sns.lineplot(x="cur_coherence", y="correct", data=thirdlvl,ax = axs[1,0])
-        axs[1,0].set(xlabel='Dot Coherence (%)', ylabel='Percentage correct (%)', xlim=(-60,60),ylim = (0,100) )
+        axs[1,0].set(xlabel='Dot Coherence (%)', ylabel='Percentage correct (%)', ylim = (0,100) )
         axs[1,0].axhline(50,0, ls='--')
 
         axs[1,1].set(xlim=(0,60))

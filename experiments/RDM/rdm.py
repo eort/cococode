@@ -134,7 +134,7 @@ endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color='white',wrapWidt
 endExp = visual.TextStim(win,text=stim_info["exp_outro"],color='white',wrapWidth=win.size[0],units='pix')
 warning = visual.TextStim(win,text=stim_info["warning"],color='white',wrapWidth=win.size[0],units='pix')
 fixDot = et.fancyFixDot(win, fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=18) 
-cloud = visual.DotStim(win,units='deg',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle')
+cloud = visual.DotStim(win,units='deg',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',autoLog=True)
 noise = visual.DotStim(win,fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',coherence=0)
 feedback = visual.TextStim(win,text='',color='white',wrapWidth=win.size[0],units='pix')
 
@@ -192,7 +192,7 @@ for block_no in range(n_blocks):
     if response_info['run_mode'] != 'dummy':
         # show block intro 
         while True:
-            startBlock.text = stim_info["blockStart"].format(block_no+1)
+            startBlock.text = stim_info["blockStart"].format(block_no+1,n_blocks)
             startBlock.draw()
             trial_info['start_block_time'] = win.flip()                        
             cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
@@ -277,6 +277,7 @@ for block_no in range(n_blocks):
                 # save dot position
                 dot_positions[frame,:,:] = noise.verticesPix
                 et.drawCompositeStim(fixDot + [noise])
+                win.logOnFlip(level=logging.INFO, msg='{}'.format(frame))
                 trial_info['end_stim_time']=trial_info['start_stim_time']=win.flip()    
             elif frame<stim_frames:
                 # save dot position

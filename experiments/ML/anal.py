@@ -2,7 +2,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os,sys,glob,json
-from IPython import embed as shell
 
 def localAverage(series,window=5):
     new_s =  pd.Series(pd.np.nan, index=series.index,name='mov_avg')
@@ -99,7 +98,6 @@ def runAnal(datFolder):
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
     mag_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='mag_correct']
     plotResults(mag_correct,cleanDat,outpath)
-    shell()
 
 if __name__ == '__main__':
     try:
