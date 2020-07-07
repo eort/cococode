@@ -227,9 +227,8 @@ for trial_no in range(trial_seq.shape[0]):
     # start block message  
     if trial_no in pause_seq:
         # reset block variables
-        reward_text = 'leider keine'
+        trial_info['block_reward'] = 0
         trial_info['pause_no'] += 1 
-        trial_info['block_points'] = 0
         progress_bar.width=bar['width']
         progress_bar.pos[0] = -bar['horiz_dist']           
 
@@ -361,8 +360,9 @@ for trial_no in range(trial_seq.shape[0]):
             reward = trial_info['mag_right']
         elif trial_info['reward_validity']=='invalid' and trial_info['resp_key'] == resp_keys[0]: 
             reward = trial_info['mag_left']
-    trial_info['block_points'] += reward
     trial_info['reward'] = reward
+    if trial_info['block_reward'] != 0:
+        trial_info['block_reward'] += reward
     
     ##########################
     ###  FEEDBACK PHASE    ###
@@ -373,8 +373,7 @@ for trial_no in range(trial_seq.shape[0]):
         progress_bar.width += 1.8*reward
         progress_bar.pos[0] += 0.9*reward
     if progress_bar.width > 2*bar['horiz_dist']:
-        reward_text = '200'
-        trial_info['total_points'] += 200
+        trial_info['block_reward'] = 200
         progress_bar.width=bar['width']
         progress_bar.pos[0] = -bar['horiz_dist']  
         progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.9*reward,progress_bar_start.pos[1])
@@ -398,19 +397,21 @@ for trial_no in range(trial_seq.shape[0]):
 
     ##########################
     ###  LOGGING  PHASE    ###
-    ########################## 
+    ##########################
+
     if trial_info['trial_no'] == 1:
         data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
     data_logger.writeTrial(trial_info)
 
     # interrupt experiment if there is a pause
     if trial_info['trial_no'] in pause_seq:
-        # end of block message       
+        # end of block message
+        trial_info['total_points'] += trial_info['block_reward']       
         if response_info['resp_mode']=='keyboard':
             event.clearEvents()
         # show text at the end of a block 
         if response_info['run_mode'] != 'dummy':      
-            endBlock.text = stim_info["endBlock_text"].format(trial_info['pause_no'],reward_text)
+            endBlock.text = stim_info["endBlock_text"].format(trial_info['pause_no'],trial_info['block_reward'])
             for frame in range(pause_frames):
                 endBlock.draw()
                 win.flip() 
