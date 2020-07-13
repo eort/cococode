@@ -42,7 +42,7 @@
                     "box_y":0,  
                     "endExp_text":"Das war's!\nDu hast {} Punkte gewonnen.\nVielen Dank für deine Teilnahme.",
                     "startBlock_text":"Block {} kann beginnen!\nDrücke die Starttaste um weiter zu machen.",
-                    "endBlock_text":"Block {} ist vorbei!\nDu hast in dieser Runde {} Punkte gewonnen.\nNimm dir eine kleine Pause.",
+                    "endBlock_text":"Block {} ist vorbei!\nBisher hast du {} Punkte gewonnen.\nNimm dir eine kleine Pause.",
                     "progress_bar":{"height":10,
                                         "width":10,
                                         "color":[0,0,0],

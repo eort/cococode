@@ -131,7 +131,7 @@ win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 endBlock = visual.TextStim(win,text= stim_info['endBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],wrapWidth=win.size[0])
-progress_bar =visual.Rect(win,height=bar['height'],lineColor=None,fillColor=bar['color'])
+progress_bar =visual.Rect(win,height=bar['height'],lineColor=None,fillColor=bar['color'],pos=[-bar['horiz_dist'],-bar['vert_dist']])
 progress_update =visual.Rect(win,height=bar['height'],lineColor=None,fillColor=bar['color'])
 progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']])
 progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']])
@@ -160,9 +160,7 @@ feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,pr
 ######################
 for block_no in range(n_blocks):
     trial_info['block_no']=block_no+1
-    trial_info['block_reward'] = 0
-    progress_bar.width=bar['width']
-    progress_bar.pos = [-bar['horiz_dist'],-bar['vert_dist']]     
+    
     # start block message
     if response_info['run_mode'] != 'dummy':
         while True:
@@ -285,8 +283,6 @@ for block_no in range(n_blocks):
             selectbar.pos = [stim_info['bar_x'], stim_info['bar_y']-0.15*stim_info['bar_height']]
             if trial_info['rew_right']:
                 reward = int(trial_info['mag_right'] *trial_info['rew_right'])
-        if trial_info['block_reward'] != 0:
-            trial_info['block_reward'] += reward
 
         # draw selection phase if response given
         if not trial_info['timeout']:
@@ -312,11 +308,12 @@ for block_no in range(n_blocks):
             progress_bar.pos[0] += 1*reward
             # if bar out of bounds reset
         if progress_bar.width > 2*bar['horiz_dist']:
-            trial_info['block_reward'] = 200
             progress_bar.width=bar['width']
             progress_bar.pos[0]=-bar['horiz_dist']
             progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ reward,progress_bar_start.pos[1])
             progress_update.width = 0     
+            trial_info['total_points'] += 200
+
 
         # draw feedback_phase 
         if trial_info['rew_left'] == 1:
@@ -348,8 +345,7 @@ for block_no in range(n_blocks):
         event.clearEvents()
     # show text at the end of a block 
     if response_info['run_mode'] != 'dummy':
-        trial_info['total_points']+=trial_info['block_reward']
-        endBlock.text = stim_info["endBlock_text"].format(block_no+1,trial_info['block_reward'])
+        endBlock.text = stim_info["endBlock_text"].format(block_no+1,trial_info['total_points'])
         for frame in range(pause_frames):
             endBlock.draw()
             win.flip() 

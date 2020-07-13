@@ -33,7 +33,7 @@
                                     "vert_dist":75},
                     "endExp_text":"Das war's!\nDu hast {} Punkte gewonnen.\nVielen Dank für deine Teilnahme.",
                     "startBlock_text":"Block {} kann jetzt beginnen!\nDrücke die Starttaste, sobald du weiter machen willst.",
-                    "endBlock_text":"Block {} ist vorbei!\nDu hast in dieser Runde {} Punkte gewonnen.\nNimm dir eine kleine Pause."},
+                    "endBlock_text":"Block {} ist vorbei!\nBisher hast du {} Punkte gewonnen.\nNimm dir eine kleine Pause."},
     "response_info":{"resp_left":51200,
                      "resp_right":53248,
                      "pause_resp":51200,
