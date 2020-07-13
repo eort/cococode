@@ -234,15 +234,16 @@ for trial_no in range(trial_seq.shape[0]):
         # reset block variables
         trial_info['pause_no'] += 1     
         if response_info['run_mode'] != 'dummy':
+        startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'])
+        startBlock.draw()
             while True:
-                startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'])
-                startBlock.draw()
                 trial_info['start_block_time'] = win.flip()                        
                 cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
                 if cont == response_info['pause_resp']:            
                     while et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys) in resp_keys:
                         trial_info['start_stim_time']=win.flip()
                     et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
+                    win.logOnFlip(level=logging.INFO, msg='start_block')
                     break
 
     # force quite experiment
@@ -278,6 +279,7 @@ for trial_no in range(trial_seq.shape[0]):
     ###  FIXATION PHASE    ###
     ##########################    
     et.drawCompositeStim(fix_phase)
+    win.logOnFlip(level=logging.INFO, msg='start_fix')
     trial_info['start_trial_time']=win.flip()
     et.sendTriggers(trigger_info['start_trial'],mode=response_info['resp_mode'])          
     for frame in range(fix_frames_seq[trial_no]):
@@ -304,6 +306,7 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################    
     et.drawCompositeStim(stim_phase) 
     # start response time measure
+    win.logOnFlip(level=logging.INFO, msg='start_stim')
     trial_info['start_stim_time'] = win.flip() 
     et.sendTriggers(trigger_info['start_stim'],mode=response_info['resp_mode'])   
     for frame in range(resp_frames):        
@@ -344,6 +347,7 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################    
     if response in resp_keys:
         trial_info['timeout'] = 0
+        win.logOnFlip(level=logging.INFO, msg='start_select')
         et.drawCompositeStim(select_phase)
         trial_info['start_select_time'] = win.flip()  
         #et.sendTriggers(trigger_info['start_select'],mode=response_info['resp_mode'])
@@ -358,7 +362,6 @@ for trial_no in range(trial_seq.shape[0]):
         for frame in range(select_frames_seq[trial_no]-1):
             et.drawCompositeStim(timeout_phase)
             trial_info['end_select_time'] = win.flip() 
-    trial_info['selectDur'] =  trial_info['end_select_time']-trial_info['start_select_time']
 
     # handle reward
     if trial_info['high_prob_side']==resp_keys[0]:
@@ -397,11 +400,12 @@ for trial_no in range(trial_seq.shape[0]):
     trial_info['start_feed_time'] = core.getTime()
     if not trial_info['timeout']:
         et.drawCompositeStim(feedback_phase + [feedback])
+        win.logOnFlip(level=logging.INFO, msg='start_feed')
         trial_info['start_feed_time'] = win.flip()
         et.sendTriggers(trigger_info['start_feed'],mode=response_info['resp_mode'])
         for frame in range(feed_frames):
             et.drawCompositeStim(feedback_phase+ [feedback])
-            trial_info['end_trial_time'] = win.flip()
+            win.flip()
     trial_info['end_trial_time'] = core.getTime()
 
     ##########################
@@ -418,10 +422,11 @@ for trial_no in range(trial_seq.shape[0]):
         if response_info['resp_mode']=='keyboard':
             event.clearEvents()
         # show text at the end of a block 
-        if response_info['run_mode'] != 'dummy':      
+        if response_info['run_mode'] != 'dummy':  
             endBlock.text = stim_info["endBlock_text"].format(trial_info['pause_no'],trial_info['total_points'])
+            win.logOnFlip(level=logging.INFO, msg='end_block')    
+            endBlock.draw()
             for frame in range(pause_frames):
-                endBlock.draw()
                 win.flip() 
         # clear any pending key presses
         event.clearEvents()

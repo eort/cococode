@@ -164,9 +164,9 @@ for block_no in range(n_blocks):
     
     # start block message
     if response_info['run_mode'] != 'dummy':
+        startBlock.text = stim_info["startBlock_text"].format(block_no+1)
+        startBlock.draw()
         while True:
-            startBlock.text = stim_info["startBlock_text"].format(block_no+1)
-            startBlock.draw()
             trial_info['start_block_time'] = win.flip()                        
             cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
             if cont == response_info['pause_resp']:            
@@ -174,6 +174,7 @@ for block_no in range(n_blocks):
                     win.flip()
                     break
                 et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
+                win.logOnFlip(level=logging.INFO, msg='start_block')
                 break
         
     # get trial info for entire block
@@ -224,6 +225,7 @@ for block_no in range(n_blocks):
 
         # fix phase
         et.drawCompositeStim(fix_phase)
+        win.logOnFlip(level=logging.INFO, msg='start_fix')
         trial_info['start_trial_time']=win.flip()
         et.sendTriggers(trigger_info['start_trial'],mode=response_info['resp_mode'])          
         for frame in range(fix_frames):
@@ -247,6 +249,7 @@ for block_no in range(n_blocks):
         # stimulus phase
         et.drawCompositeStim(stim_phase) 
         # start response time measure
+        win.logOnFlip(level=logging.INFO, msg='start_stim')
         trial_info['start_stim_time'] = win.flip() 
         et.sendTriggers(trigger_info['start_stim'],mode=response_info['resp_mode'])   
         for frame in range(resp_frames):        
@@ -292,6 +295,7 @@ for block_no in range(n_blocks):
         # draw selection phase if response given
         if not trial_info['timeout']:
             et.drawCompositeStim(select_phase)
+            win.logOnFlip(level=logging.INFO, msg='start_select')
             trial_info['start_select_time'] = win.flip()  
             #et.sendTriggers(trigger_info['start_select'],mode=response_info['resp_mode'])
             for frame in range(select_frames):
@@ -299,6 +303,7 @@ for block_no in range(n_blocks):
                 win.flip()  
         elif trial_info['timeout'] == 1:
             timeout_screen.draw() 
+            win.logOnFlip(level=logging.INFO, msg='start_timeout')
             trial_info['start_select_time'] = win.flip()
             et.sendTriggers(trigger_info['timeout'],mode=response_info['resp_mode'],prePad=0.01)   
             for frame in range(select_frames-1):
@@ -319,7 +324,6 @@ for block_no in range(n_blocks):
             progress_update.width = 0     
             trial_info['total_points'] += 200
 
-
         # draw feedback_phase 
         if trial_info['rew_left'] == 1:
             leftbar.fillColor = bar['corr_color']
@@ -332,6 +336,7 @@ for block_no in range(n_blocks):
  
         trial_info['start_feed_time'] = core.getTime()
         if trial_info['timeout'] ==0:    
+            win.logOnFlip(level=logging.INFO, msg='start_feed')
             et.drawCompositeStim(feedback_phase)
             win.flip()
             et.sendTriggers(trigger_info['start_feed'],mode=response_info['resp_mode'])
@@ -351,16 +356,17 @@ for block_no in range(n_blocks):
     # show text at the end of a block 
     if response_info['run_mode'] != 'dummy':
         endBlock.text = stim_info["endBlock_text"].format(block_no+1,trial_info['total_points'])
+        endBlock.draw()
+        win.logOnFlip(level=logging.INFO, msg='end_block')
         for frame in range(pause_frames):
-            endBlock.draw()
             win.flip() 
     # clear any pending key presses
     event.clearEvents()
 # end of experiment message
 if response_info['run_mode'] != 'dummy':
     endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
+    endExp.draw()
     while True:
-        endExp.draw()
         win.flip()
         cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
         if cont == response_info['pause_resp']:
