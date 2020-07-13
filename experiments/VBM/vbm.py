@@ -144,6 +144,7 @@ selectbar = visual.Rect(win,width=stim_info['bar_width']*1.4,height=stim_info['b
 leftProb = visual.TextStim(win,height=15,color=win_info['fg_color'],pos=[-stim_info['bar_x'],-0.7*stim_info['bar_height']+stim_info['bar_y']] )
 rightProb = visual.TextStim(win,height=15,color=win_info['fg_color'],pos=[stim_info['bar_x'],-0.7*stim_info['bar_height']+stim_info['bar_y']])
 timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
+warning = visual.TextStim(win,text=stim_info["warning"],color='white',wrapWidth=win.size[0],units='pix',autoLog=0)
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -168,9 +169,13 @@ for block_no in range(n_blocks):
             startBlock.draw()
             trial_info['start_block_time'] = win.flip()                        
             cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
-            if cont == response_info['pause_resp']:
+            if cont == response_info['pause_resp']:            
+                while et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys) in resp_keys:
+                    win.flip()
+                    break
+                et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
                 break
-        et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'],prePad = 0.1)
+        
     # get trial info for entire block
     trial_seq = sequence[block_no*n_trials:(block_no+1)*n_trials]
 
@@ -231,7 +236,7 @@ for block_no in range(n_blocks):
         elif response_info['resp_mode']=='meg':
             while et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys) in resp_keys:
                 trial_info['start_stim_time']=win.flip()
-                if trial_info['start_stim_time']-t0>1.0:
+                if trial_info['start_stim_time']-trial_info['start_trial_time']>1.0:
                     warning.draw()
                     win.flip()
 

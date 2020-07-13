@@ -63,8 +63,12 @@ while input_dict['sess_id'] not in [1,2,3]:
         core.quit()
 # check whether settings match config file
 if sess_type!=input_dict['sess_type']:
-    print('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
-    logging.warning('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
+    logging.warning('Specified session type does not fit config file. This might cause issues further down the stream...')
+# check whether settings match config file
+if reward_info['rep_block']*reward_info['high_prob']!=int(reward_info['rep_block']*reward_info['high_prob']):
+    logging.warning('Current reward settings do not allow proper counterbalancing: Adjust the reward probabilities or the size of the building blocks.')
+if sum([bl%(2*reward_info['rep_block']) for bl in param['volatile_blocks']])!=0:
+    logging.warning('Current reward settings do not allow proper counterbalancing: Adjust block length of volatile blocks or the size of the building blocks.')
 
 ###########################################
 ###           SET UP OVERHEAD          ####
@@ -107,7 +111,7 @@ resp_keys = [response_info['resp_left'],response_info['resp_right']]
 rgb_dict = stim_info['stim_colors']
 
 # select colors from predefined options based on sub id
-if trial_info['sess_type']!='screening':
+if trial_info['sess_type']=='meg':
     color_idx = [(x,y,z) for (x,y,z) in it.product(range(3),range(3),range(3)) if x!=y and y!=z and x!=z][trial_info['sub_id']%6]
     colors = stim_info['color_combinations'][color_idx[trial_info['sess_id']-1]]
 else:
@@ -127,7 +131,7 @@ else:
 # create building blocks of possible location/validity combinations 
 # currently it only works with 80-20%. Having 75 oder 70 will require reprogramming to allow for perfectly balanced trials
 # proper ratio of valid and invalid trials (highlikely color will bring reward)
-reward_ratio = np.array([1]*round(reward_info['high_prob']*5)+[0]*round((1-reward_info['high_prob'])*5))
+reward_ratio = np.array([1]*round(reward_info['high_prob']*reward_info['rep_block'])+[0]*round((1-reward_info['high_prob'])*reward_info['rep_block']))
 # extend this balanced ratio to location (left,right)
 # 0 unreward left, 1 rewarded left, 2 unrewarded right, rewarded right
 reward_ratio_both_sides = np.concatenate((reward_ratio,reward_ratio+2))
@@ -199,6 +203,7 @@ rightMag = visual.TextStim(win,color=win_info['fg_color'],pos=[stim_info['box_x'
 timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0])
 smiley = visual.ImageStim(win,'smiley.png',contrast=-1,size=[stim_info['box_edge']-10,stim_info['box_edge']-10]) # good feedback
 frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[stim_info['box_edge']-10,stim_info['box_edge']-10]) # bad feedback
+warning = visual.TextStim(win,text=stim_info["warning"],color='white',wrapWidth=win.size[0],units='pix',autoLog=0)
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -234,9 +239,11 @@ for trial_no in range(trial_seq.shape[0]):
                 startBlock.draw()
                 trial_info['start_block_time'] = win.flip()                        
                 cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
-                if cont == response_info['pause_resp']:
+                if cont == response_info['pause_resp']:            
+                    while et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys) in resp_keys:
+                        trial_info['start_stim_time']=win.flip()
+                    et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'])
                     break
-            et.sendTriggers(trigger_info['start_block'],mode=response_info['resp_mode'],prePad=0.01)
 
     # force quite experiment
     escape = event.getKeys()
@@ -277,8 +284,16 @@ for trial_no in range(trial_seq.shape[0]):
         et.drawCompositeStim(fix_phase)
         trial_info['start_stim_time']=win.flip()  
     trial_info['fixDur'] =  trial_info['start_stim_time']-trial_info['start_trial_time']
-    # clear any pending key presses
-    event.clearEvents()
+    
+    # check whether a button in the response box is currently pressed & present a warning if so
+    if response_info['resp_mode']=='keyboard':
+        event.clearEvents()
+    elif response_info['resp_mode']=='meg':
+        while et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys) in resp_keys:
+            trial_info['start_stim_time']=win.flip()
+            if trial_info['start_stim_time']-trial_info['start_trial_time']>1.0:
+                warning.draw()
+                win.flip()
 
     # choose a random response frame if response mode is dummy     
     if response_info['run_mode']=='dummy':
