@@ -18,7 +18,7 @@
     "timing_info":{"resp_dur":2.992,
                 "feed_dur":0.492,
                 "pause_dur":9.992,
-                "fix_mean":1.195,
+                "fix_mean":1.192,
                 "fix_range":0.2,
                 "select_mean":0.992,
                 "select_range":0.2},

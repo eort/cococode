@@ -165,8 +165,8 @@ for block_no in range(n_blocks):
     # start block message
     if response_info['run_mode'] != 'dummy':
         startBlock.text = stim_info["startBlock_text"].format(block_no+1)
-        startBlock.draw()
         while True:
+            startBlock.draw()
             trial_info['start_block_time'] = win.flip()                        
             cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
             if cont == response_info['pause_resp']:            
@@ -228,7 +228,7 @@ for block_no in range(n_blocks):
         win.logOnFlip(level=logging.INFO, msg='start_fix')
         trial_info['start_trial_time']=win.flip()
         et.sendTriggers(trigger_info['start_trial'],mode=response_info['resp_mode'])          
-        for frame in range(fix_frames):
+        for frame in range(fix_frames-1):
             et.drawCompositeStim(fix_phase)
             trial_info['start_stim_time']=win.flip()  
         
@@ -298,7 +298,7 @@ for block_no in range(n_blocks):
             win.logOnFlip(level=logging.INFO, msg='start_select')
             trial_info['start_select_time'] = win.flip()  
             #et.sendTriggers(trigger_info['start_select'],mode=response_info['resp_mode'])
-            for frame in range(select_frames):
+            for frame in range(select_frames-1):
                 et.drawCompositeStim(select_phase)
                 win.flip()  
         elif trial_info['timeout'] == 1:
@@ -340,7 +340,7 @@ for block_no in range(n_blocks):
             et.drawCompositeStim(feedback_phase)
             win.flip()
             et.sendTriggers(trigger_info['start_feed'],mode=response_info['resp_mode'])
-            for frame in range(feed_frames):
+            for frame in range(feed_frames-1):
                 et.drawCompositeStim(feedback_phase)
                 win.flip()
         trial_info['end_trial_time'] = core.getTime()
@@ -365,8 +365,8 @@ for block_no in range(n_blocks):
 # end of experiment message
 if response_info['run_mode'] != 'dummy':
     endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
-    endExp.draw()
     while True:
+        endExp.draw()
         win.flip()
         cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
         if cont == response_info['pause_resp']:
