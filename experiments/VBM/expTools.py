@@ -1,6 +1,15 @@
 from psychopy import visual,event,core,logging
 import pandas as pd
 import os
+import random
+
+def drawFlip(win, stim):
+    """
+    combines drawing and window flipping
+    """
+    drawCompositeStim(stim)
+    timestamp = win.flip()
+    return timestamp
 
 def prepDirectories():
     """
@@ -11,17 +20,25 @@ def prepDirectories():
         if not os.path.exists(arg):
               os.makedirs(arg)   
 
-def captureResponse(mode='meg',keys = ['m',None]):
+def captureResponseMEG(keys = ['m',None]):
     """
-    Depending on the machine the experiment is running on, it either captures response from
-    parallel port (mode='meg'), randomly (mode='dummy') or by key press (keyboard)
+    system call to read out parallel port
     """    
-    if mode=='meg':
-        return os.system("/usr/local/bin/pin 0x379")
-    elif mode=='keyboard':
-        resp = event.getKeys()
-        if len(resp)>0: return resp[-1]
-        return None   
+    return os.system("/usr/local/bin/pin 0x379")
+    
+def captureResponseKB(keys = ['m',None]):
+    """
+    poll a keyboard response
+    """
+    resp = event.getKeys()
+    if len(resp)>0: return resp[-1]
+    return None   
+
+def captureResponseDummy(keys = ['m',None]):
+    """
+    poll a keyboard response
+    """
+    return random.choice(keys)
 
 def drawCompositeStim(stim_list):
     """
@@ -35,10 +52,10 @@ def fancyFixDot(window,bg_color,fg_color='white',size=30):
     Objectively the best fixation dot: https://www.sciencedirect.com/science/article/pii/S0042698912003380
     """
     # define two circles and a cross
-    bigCircle = visual.Circle(win=window, size=size,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color)
-    rect_horiz = visual.Rect(win=window,units="pix",width=size,height=size/6,fillColor=bg_color,lineColor=bg_color)
-    rect_vert = visual.Rect(win=window,units="pix",width=size/6,height=size,fillColor=bg_color,lineColor=bg_color)
-    smallCircle = visual.Circle(win=window, size=size/6,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color)
+    bigCircle = visual.Circle(win=window, size=size,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
+    rect_horiz = visual.Rect(win=window,units="pix",width=size,height=size/6,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+    rect_vert = visual.Rect(win=window,units="pix",width=size/6,height=size,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+    smallCircle = visual.Circle(win=window, size=size/6,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
     return [bigCircle,rect_horiz,rect_vert,smallCircle]
 
 def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
@@ -50,16 +67,15 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
         anal.runAnal(dataLogger.outpath)
     core.quit()
 
-def sendTriggers(trigger,mode=None,prePad = 0):
+def sendTriggers(trigger,reset=True,prePad=0):
     """
     make code easier to read by combining sending triggers with the timeout 
     """
-    if mode == 'meg':
-        core.wait(prePad)
-        os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
-        core.wait(0.01)
-        os.system("/usr/local/bin/parashell 0x378 0")   
-        core.wait(0.01)
+    core.wait(prePad)
+    os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
+    if reset:
+        core.wait(0.012)
+        os.system("/usr/local/bin/parashell 0x378 0")
 
 class Logger(object):
     """

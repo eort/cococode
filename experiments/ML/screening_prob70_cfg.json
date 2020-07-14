@@ -1,6 +1,6 @@
 {
     "name":"ml",
-    "version":"2.2",
+    "version":"2.3",
     "exp_id":"screening70_beh",
     "sess_type":"screening",
     "n_blocks":2,
@@ -20,8 +20,8 @@
                 "pause_dur":9.992,
                 "fix_mean":1.192,
                 "fix_range":0.2,
-                "select_mean":0.992,
-                "select_range":0.2},
+                "select_mean":0.492,
+                "select_range":0.1},
     "stim_info":{"color_combinations":[["pink", "yellow"]],
                     "stim_colors": {"red":[0.265625,-0.19140625,-0.09375],
                                     "brown":[0.13671875,-0.08203125,-0.3671875],
