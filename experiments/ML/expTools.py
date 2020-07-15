@@ -63,18 +63,19 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
     window.close()
     dataLogger.write2File(sort=sort)
     if show_results:
-        import anal
+        import anal,checkTimings
         anal.runAnal(dataLogger.outpath)
+        checkTimings.run('log'+dataLogger.outpath[3:-3]+'log')
     core.quit()
 
-def sendTriggers(trigger,reset=True,prePad=0):
+def sendTriggers(trigger,reset=0.012,prePad=0):
     """
     make code easier to read by combining sending triggers with the timeout 
     """
     core.wait(prePad)
     os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
     if reset:
-        core.wait(0.012)
+        core.wait(reset)
         os.system("/usr/local/bin/parashell 0x378 0")
 
 class Logger(object):

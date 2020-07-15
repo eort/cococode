@@ -178,8 +178,8 @@ for block_no in range(n_blocks):
         if cont == response_info['pause_resp']:            
             while captureResponse(keys=resp_keys+ [None]) in resp_keys:
                 win.flip()
-            win.callOnFlip(et.sendTriggers,trigger_info['start_block'])
-            win.logOnFlip(level=logging.INFO, msg='start_block')
+            win.callOnFlip(et.sendTriggers,trigger_info['start_block'],reset=0.5)
+            win.logOnFlip(level=logging.INFO, msg='start_block\t{}'.format(trial_info['block_no']))
             win.flip()
             break
         
@@ -226,16 +226,6 @@ for block_no in range(n_blocks):
         leftProb.text =  '{:02d}%'.format(int(trial_info['prob_left']))
         rightProb.text = '{:02d}%'.format(int(trial_info['prob_right']))
 
-        ##########################
-        ###  FIXATION PHASE    ###
-        ########################## 
-        win.logOnFlip(level=logging.INFO, msg='start_fix:{}'.format(trial_info['fix_dur']))
-        win.callOnFlip(et.sendTriggers,trigger_info['start_trial'],reset = 0) 
-        for frame in range(fix_frames):
-            if frame == 5:
-                win.callOnFlip(et.sendTriggers,0,reset = 0)
-            et.drawFlip(win,fix_phase) 
-        
         # check whether a button in the response box is currently pressed & present a warning if so
         t0 = core.getTime()
         if response_info['resp_mode']=='meg':
@@ -243,8 +233,18 @@ for block_no in range(n_blocks):
                 t1=win.flip()
                 if t1-t0>1.0:
                     et.drawFlip(win,[warning]) 
-
-        # do it framewise rather than timeout based       
+        
+        ##########################
+        ###  FIXATION PHASE    ###
+        ########################## 
+        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_count'],trial_info['fix_dur']))
+        win.callOnFlip(et.sendTriggers,trigger_info['start_trial'],reset = 0) 
+        for frame in range(fix_frames):
+            if frame == 5:
+                win.callOnFlip(et.sendTriggers,0,reset = 0)
+            et.drawFlip(win,fix_phase) 
+        
+        # choose a random response frame
         if response_info['run_mode']=='dummy':
             dummy_resp_frame = np.random.choice(range(resp_frames))
         
@@ -252,7 +252,7 @@ for block_no in range(n_blocks):
         ###  STIMULUS PHASE    ###
         ##########################
         event.clearEvents()
-        win.logOnFlip(level=logging.INFO, msg='start_stim')
+        win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_info['trial_count']))
         win.callOnFlip(et.sendTriggers,trigger_info['start_stim'], reset = 0) 
         for frame in range(resp_frames): 
             # reset trigger
@@ -300,11 +300,11 @@ for block_no in range(n_blocks):
 
         # draw selection phase if response given
         if not trial_info['timeout']:
-            win.logOnFlip(level=logging.INFO, msg='start_select:{}'.format(trial_info['select_dur'])) 
+            win.logOnFlip(level=logging.INFO, msg='start_select\t{}\t{}'.format(trial_info['trial_count'],trial_info['select_dur']))
             for frame in range(select_frames):
                 et.drawFlip(win,select_phase)
         elif trial_info['timeout'] == 1:
-            win.logOnFlip(level=logging.INFO, msg='start_timeout')
+            win.logOnFlip(level=logging.INFO, msg='start_timeout\t{}'.format(trial_info['trial_count']))
             win.callOnFlip(et.sendTriggers,trigger_info['timeout'],reset=0,prePad=0.012)
             for frame in range(select_frames):
                 if frame == 5:
@@ -336,13 +336,13 @@ for block_no in range(n_blocks):
             rightbar.fillColor = bar['incorr_color']
  
         if trial_info['timeout'] ==0:    
-            win.logOnFlip(level=logging.INFO, msg='start_feed')
+            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_info['trial_count']))
             win.callOnFlip(et.sendTriggers,trigger_info['start_feed'],reset=0)
             for frame in range(feed_frames):
                 if frame == 5:
                     win.callOnFlip(et.sendTriggers,0,reset=0)
                 et.drawFlip(win,feedback_phase)
-            win.logOnFlip(level=logging.INFO, msg='end_trial')
+            win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_count']))
             et.drawFlip(win,fix_phase)
 
         # logging
@@ -352,7 +352,7 @@ for block_no in range(n_blocks):
 
     # end of block message
     endBlock.text = stim_info["endBlock_text"].format(block_no+1,trial_info['total_points'])
-    win.logOnFlip(level=logging.INFO, msg='end_block')
+    win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))  
     for frame in range(pause_frames):
         et.drawFlip(win,[endBlock])
     # clear any pending key presses

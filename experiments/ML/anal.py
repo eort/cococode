@@ -2,6 +2,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os,sys,glob,json
+from IPython import embed as shell
 
 def localAverage(series,window=5):
     new_s =  pd.Series(pd.np.nan, index=series.index,name='mov_avg')
@@ -45,21 +46,25 @@ def runAnal(datFolder):
         allDat = pd.read_csv(datFolder)
         outpath= datFolder.replace('csv','png')
 
-    
     allDat.correct = allDat.correct.astype(int)
-
+    if 'left' in allDat.resp_key:
+        left = 'left'
+        right = 'right'
+    else:
+        left = 51200
+        right = 53248
     allDat['prob_left'] = 0.2
-    allDat['prob_left'].loc[allDat['high_prob_side'] == 'left' ]= 0.8
+    allDat['prob_left'].loc[allDat['high_prob_side'] == left ]= 0.8
     allDat['prob_right'] = 0.2
-    allDat['prob_right'].loc[allDat['high_prob_side'] == 'right' ]= 0.8
+    allDat['prob_right'].loc[allDat['high_prob_side'] == right ]= 0.8
     allDat['ev_left'] = allDat.mag_left*allDat.prob_left
     allDat['ev_right'] = allDat.mag_right*allDat.prob_right
-    allDat['ev_correct_resp'] = 'left'
-    allDat['ev_correct_resp'].loc[allDat['ev_left']<allDat['ev_right']] = 'right'
-    allDat['mag_correct_resp'] = 'left'
-    allDat['mag_correct_resp'].loc[allDat['mag_left']<allDat['mag_right']] = 'right'
-    allDat['mag_correct'] = allDat['mag_correct_resp'] == allDat['resp_key']
-    allDat['ev_correct'] = allDat['ev_correct_resp'] == allDat['resp_key']
+    allDat['ev_correct_resp'] = left
+    allDat['ev_correct_resp'].loc[allDat['ev_left']<allDat['ev_right']] = right
+    allDat['mag_correct_resp'] = left
+    allDat['mag_correct_resp'].loc[allDat['mag_left']<allDat['mag_right']] = right
+    allDat['mag_correct'] = (allDat['mag_correct_resp'] == allDat['resp_key']).astype(int)
+    allDat['ev_correct'] = (allDat['ev_correct_resp'] == allDat['resp_key']).astype(int)
     allDat['mags'] = list(zip(allDat.mag_left,allDat.mag_right))
 
     # filter
@@ -69,9 +74,9 @@ def runAnal(datFolder):
     cleanDat['ev_mov_avg']= cleanDat.groupby(['sub_id'])['ev_correct'].apply(localAverage)
     cleanDat['mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(localAverage)
 
-
     #pd.crosstab(allDat.mags, allDat.high_prob_side)
     # aggregate data for sub stats
+    #shell()
     firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['correct','resp_time'].mean().reset_index()
     secondlvl_acc= cleanDat.groupby(['sub_id'])['correct','resp_time'].mean().reset_index()
     # plot

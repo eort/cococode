@@ -4,7 +4,7 @@
     "exp_id":"screening_beh",
     "sess_type":"screening",
     "n_blocks":2,
-    "n_trials":210,
+    "n_trials":60,
     "stable_blocks":[210],
     "volatile_blocks":[20,20,30,30,30,40,40],
     "pause_interval":60,
