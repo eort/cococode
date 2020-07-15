@@ -12,7 +12,7 @@ import glob # to search in system efficiently
 import threading # parallel response collection
 import queue # parallel response collection
 import pandas as pd # export 
-
+from IPython import embed as shell
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
 #######################################
@@ -48,8 +48,8 @@ rdk = stim_info['cloud_specs']                    # info on RDK
 ###         HANDLE INPUT DIALOG        ####
 ###########################################
 # dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type,noise_duration=timing_info['noise_mean'])
-inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type',"noise_duration"])
+input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
+inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
 
 # check for input
 if inputGUI.OK == False:
@@ -70,6 +70,13 @@ if sess_type!=input_dict['sess_type']:
 ###########################################
 ###           SET UP OVERHEAD          ####
 ###########################################
+# choose response functions
+if response_info['resp_mode'] == 'meg':
+    captureResponse = et.captureResponseMEG
+elif response_info['resp_mode'] == 'keyboard': 
+    captureResponse = et.captureResponseKB
+if response_info['run_mode'] == 'dummy':
+   captureResponse = et.captureResponseDummy
 
 # prepare the logfile (general log file, not data log file!) and directories
 logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
@@ -108,7 +115,7 @@ if trial_info['sess_type'] != 'practice':
 else:
     coherence_lvls = [0.3+coh for coh in param['coherence_lvl']]
 n_cohs = len(coherence_lvls)
-noise_mean = input_dict['noise_duration']
+noise_mean = timing_info['noise_mean']
 
 # set response keys
 resp_keys = [response_info['resp_left'],response_info['resp_right']]
@@ -122,21 +129,20 @@ all_positions = pd.DataFrame(columns= {'positions':np.nan}, index=indices)
 mon = monitors.Monitor('cocoLab',width = win_info['screen_width'],distance = win_info['screen_distance'])
 mon.setSizePix(win_info['win_size'])
 #create a window
-win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscreen'], units='deg',screen=1, monitor = mon)
+win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscreen'], units='deg',screen=1, monitor = mon,autoLog=0)
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
 event.clearEvents()
 
 # first all kind of structural messages
-startBlock = visual.TextStim(win,text=stim_info["blockStart"],color='white',wrapWidth=win.size[0],units='pix')
-endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color='white',wrapWidth=win.size[0],units='pix')
-endExp = visual.TextStim(win,text=stim_info["exp_outro"],color='white',wrapWidth=win.size[0],units='pix')
-warning = visual.TextStim(win,text=stim_info["warning"],color='white',wrapWidth=win.size[0],units='pix')
-fixDot = et.fancyFixDot(win, fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=18) 
-cloud = visual.DotStim(win,units='deg',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',autoLog=True)
-noise = visual.DotStim(win,fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',coherence=0)
-feedback = visual.TextStim(win,text='',color='white',wrapWidth=win.size[0],units='pix')
+startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],wrapWidth=win.size[0],units='pix',autoLog=0)
+endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],wrapWidth=win.size[0],units='pix',autoLog=0)
+endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],wrapWidth=win.size[0],units='pix',autoLog=0)
+warning = visual.TextStim(win,text=stim_info["warning"],color=win_info['fg_color'],wrapWidth=win.size[0],units='pix',autoLog=0)
+feedback = visual.TextStim(win,text='',color=win_info['fg_color'],wrapWidth=win.size[0],units='pix',autoLog=0)
+fixDot = et.fancyFixDot(win,fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=18) 
+cloud = visual.DotStim(win,color=win_info['fg_color'],units='deg',fieldSize=rdk['cloud_size'],nDots=rdk['n_dots'],dotLife=rdk['dotLife'] ,dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape = 'circle',coherence=0)
 
 ####################
 ###  SET TIMING  ###
@@ -182,25 +188,26 @@ for block_no in range(n_blocks):
         coherence_lvls.append(0)
         n_trials = param['n_trials'] + param['n_zero'] 
 
+    # create sequences
     dir_seq = [param['dir1'] if i==-1 else param['dir2'] if i==1 else 0  for i in _dir_seq]
     corr_resp_seq = [resp_keys[0] if i==-1 else resp_keys[1] if i==1 else None for i in _dir_seq]
     coh_seq = [coherence_lvls[i] for i in trial_seq ]
-    
+    trigger_seq = ['coh_{}_{}'.format(dir_seq[i],coherence_lvls.index(coh_seq[i])+1) for i in range(len(trial_seq))]
+
     # reset block variables
     trial_info['total_correct'] = 0 
-   
-    if response_info['run_mode'] != 'dummy':
-        # show block intro 
-        while True:
-            startBlock.text = stim_info["blockStart"].format(block_no+1,n_blocks)
-            startBlock.draw()
-            trial_info['start_block_time'] = win.flip()                        
-            cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
-            if cont == response_info['pause_resp']:
-                break
+
+    # show block intro 
+    startBlock.text = stim_info["blockStart"].format(block_no+1,n_blocks)
+    while True:
+        et.drawFlip(win,[startBlock])                    
+        cont=captureResponse(keys = [response_info['pause_resp']])    
+        if cont == response_info['pause_resp']:
+            break
 
     # send trigger
-    et.sendTriggers(trigger_info['block_on'],mode=response_info['resp_mode'])
+    logging.log(level=logging.INFO, msg='start_block')
+    et.sendTriggers(trigger_info['block_on'],prePad=0.5,reset = 0.2)
     trial_info['block_no']=block_no+1
 
     ##########################
@@ -212,8 +219,9 @@ for block_no in range(n_blocks):
         if 'q' in escape:
             et.finishExperiment(win,data_logger)
 
+        cloud.coherence = 0
+        response=None
         # for timing tests, delete later
-        trial_info['end_feed_time']= np.nan
         trial_info['early_response'] = 0
         trial_info['timeout']=0
         # draw duration of fix cross from predefined distribution
@@ -223,10 +231,10 @@ for block_no in range(n_blocks):
         # set specific orientations
         trial_info['corr_resp'] = corr_resp_seq[trial_no]
         trial_info['cur_coherence'] =coh_seq[trial_no]  
-        trial_info['cur_dir'] = dir_seq[trial_no]   
-        
+        trial_info['cur_dir'] = dir_seq[trial_no]
+        trial_info['cur_trigger'] = trigger_seq[trial_no]    
+         
         # draw RDK stimulus 
-        cloud.coherence = trial_info['cur_coherence']
         if param['n_zero']:
             cloud.dir = trial_info['cur_dir']
         else:
@@ -235,72 +243,57 @@ for block_no in range(n_blocks):
         noise_frames = int(round(trial_info['noise_dur']*win_info['framerate']))
         stim_frames = noise_frames+int(round(timing_info['stim_dur']*win_info['framerate']))
         dot_frames = noise_frames+int(timing_info['resp_dur']*win_info['framerate'])
-        # choose a dummy response mode response frame
-        if response_info['run_mode']=='dummy':
-            dummy_resp_frame = max(noise_frames+1,np.random.choice(range(dot_frames)))
 
         ##########################
         ###  FIXATION PHASE    ###
         ##########################   
         # start trial and draw fixation and wait for 
-        et.drawCompositeStim(fixDot)
-        trial_info['start_trial_time'] =win.flip()  
-        et.sendTriggers(trigger_info['fix_on'],mode=response_info['resp_mode'])   
+        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}'.format(trial_info['trial_count']))
+        win.callOnFlip(et.sendTriggers,trigger_info['fix_on'],reset=0)  
         for frame in range(fix_frames):
-            et.drawCompositeStim(fixDot)
-            trial_info['end_fix_time'] = win.flip()
+            if frame == 5:
+                win.callOnFlip(et.sendTriggers,0,reset=0)
+            et.drawFlip(win,fixDot)  
 
         # remove premature responses
-        if response_info['resp_mode']=='keyboard':
-            event.clearEvents()
-        else:
-            # check whether a button in the response box is currently pressed & present a warning if so
-            while et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys) in resp_keys:
-                trial_info['start_noise_time']=win.flip()
-                if trial_info['start_noise_time']-trial_info['end_fix_time']>1.0:
-                    warning.draw()
-                    win.flip()        
+        event.clearEvents()
+        t0 = core.getTime()
+        # check whether a button in the response box is currently pressed & present a warning if so
+        while captureResponse(keys=resp_keys+[None]) in resp_keys:
+            if core.getTime()-t0>1.0: 
+                et.drawFlip(win,[warning])  
+       
         ##########################
         ###  STIMULUS PHASE    ###
         ##########################
+        stimTime = dict(onset =np.nan)
         in_queue = queue.Queue()
-        cycles=[]
         dot_positions = np.zeros((dot_frames,rdk['n_dots'],2))
-        et.drawCompositeStim(fixDot+[noise])
-        et.sendTriggers(trigger_info['noise_on'],mode=response_info['resp_mode'])
-        trial_info['start_noise_time'] =win.flip() 
+        win.logOnFlip(level=logging.INFO, msg='start_noise\t{}\t{}'.format(trial_info['trial_count'],trial_info['noise_dur']))
+        win.callOnFlip(et.sendTriggers,trigger_info['noise_on'],reset=0)
         for frame in range(dot_frames):     
             # start a parallel thread in the background that polls responses and doesnt interfere with the RDK
-            respThread =  threading.Thread(target=et.captureResponse,kwargs={'mode':response_info['resp_mode'],'keys':resp_keys,'in_queue':in_queue},daemon=1)
+            respThread =  threading.Thread(target=captureResponse,kwargs={'keys':resp_keys + 250*[None],'in_queue':in_queue},daemon=1)
             respThread.start()   
-            if frame<noise_frames:
-                # save dot position
-                dot_positions[frame,:,:] = noise.verticesPix
-                et.drawCompositeStim(fixDot + [noise])
-                win.logOnFlip(level=logging.INFO, msg='{}'.format(frame))
-                trial_info['end_stim_time']=trial_info['start_stim_time']=win.flip()    
-            elif frame<stim_frames:
-                # save dot position
-                dot_positions[frame,:,:] = cloud.verticesPix
-                # send trigger on the first frame
-                if frame==noise_frames:
-                    pass
-                    #et.sendTriggers(trigger_info['coh_{}_{}'.format(trial_info['cur_dir'],coherence_lvls.index(trial_info['cur_coherence'])+1)],mode=response_info['resp_mode'])                
-                et.drawCompositeStim(fixDot + [cloud])
-                trial_info['end_stim_time'] =win.flip()     
-            else:
-                et.drawCompositeStim(fixDot)
-                win.flip()
-            cycles.append(trial_info['end_stim_time'])
-            
-            #sample response
-            if response_info['run_mode']=='dummy':
-                if dummy_resp_frame == frame:
-                    response = np.random.choice(resp_keys)
-                    break
-                else: response = None
-            #else:
-                #response = et.captureResponse(mode=response_info['resp_mode'],keys=resp_keys)
+            # show cloud
+            if frame<stim_frames:
+                if frame == 5: 
+                    et.sendTriggers(0,reset=0)
+                elif frame==noise_frames:
+                    cloud.coherence = trial_info['cur_coherence']
+                    win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_info['trial_count']))
+                    win.callOnFlip(et.sendTriggers,trial_info['cur_trigger'],reset=0)
+                    win.timeOnFlip(stimTime,'onset')
+                elif frame==noise_frames+5:
+                    win.callOnFlip(et.sendTriggers,0,reset=0)     
+                win.logOnFlip(level=logging.INFO, msg='cloud_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
+                et.drawFlip(win,fixDot + [cloud]) 
+            else:               
+                win.logOnFlip(level=logging.INFO, msg='nostim_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
+                et.drawFlip(win,fixDot)
+
+            # save dot position
+            dot_positions[frame,:,:] = cloud.verticesPix            
 
             # poll response break if a key was pressed
             try:
@@ -310,40 +303,41 @@ for block_no in range(n_blocks):
             if response in resp_keys:
                 break
 
-        time_response = core.getTime()
+        win.logOnFlip(level=logging.INFO, msg='resp_time\t{}'.format(trial_info['trial_count']))
+        et.drawFlip(win,fixDot)
+
+        ##########################
+        ###  POST PROCESSING   ###
+        ##########################
+        trial_info['resp_time'] = core.getTime()-stimTime['onset']
+        trial_info['resp_key'] = response
+        trial_info['correct'] = int(response==trial_info['corr_resp'])
+        if trial_info['correct']:
+            trial_info['total_correct']+=1  
+
         # check for too early or too late responses
         if frame == dot_frames-1:
             trial_info['timeout'] = 1
             feedback.text = 'Zu spät!'
         elif frame <= noise_frames:
             trial_info['early_response'] = 1
-            feedback.text = 'Zu früh!'            
-
-        ##########################
-        ###  POST PROCESSING   ###
-        ##########################
-        # start handling response variables
-        trial_info['stimDur'] = trial_info['end_stim_time']-trial_info['start_stim_time']
-        trial_info['noiseDur'] = trial_info['start_stim_time']-trial_info['start_noise_time']
-        trial_info['resp_time'] = time_response-trial_info['start_stim_time']
-        trial_info['resp_key'] = response
-        trial_info['correct'] = int(response==trial_info['corr_resp'])
+            feedback.text = 'Zu früh!' 
 
         # show feedback if no response was given       
         if trial_info['timeout'] == 1 or trial_info['early_response'] == 1:
             trial_info['correct'] = np.nan
-            et.sendTriggers(trigger_info['feedback_on'],mode=response_info['resp_mode'])
+            #et.sendTriggers(trigger_info['feedback_on'],prePad=0.01)
+            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_info['trial_count']))
+            win.callOnFlip(et.sendTriggers,trigger_info['feedback_on'],reset=0, prePad=0.024)
             for frame in range(feed_frames):
-                feedback.draw()
-                win.flip()
-
-        if trial_info['correct']:
-            trial_info['total_correct']+=1      
+                if frame == 5:
+                    win.callOnFlip(et.sendTriggers,0,reset=0)
+                et.drawFlip(win,[feedback])   
+        # end trial logging
+        win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_count']))
+        et.drawFlip(win,fixDot)
         
-        trial_info['end_trial_time'] = core.getTime()
-        trial_info['meanFrame_duration'] = np.mean(np.diff(cycles))
-        trial_info['minFrame_duration'] = np.min(np.diff(cycles))
-        trial_info['maxFrame_duration'] = np.max(np.diff(cycles))
+        # keep track of dot positions        
         all_positions.loc[(trial_info['block_no'],trial_info['trial_no']),'positions'] = dot_positions
 
         ##########################
@@ -353,27 +347,19 @@ for block_no in range(n_blocks):
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
         data_logger.writeTrial(trial_info)
 
-
-    # send triggers
-    if response_info['resp_mode']=='keyboard':
-        event.clearEvents()
     # show text at the end of a block 
-    if response_info['run_mode'] != 'dummy':      
-        endBlock.text = stim_info["blockEnd"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
-        for frame in range(pause_frames):
-            endBlock.draw()
-            win.flip() 
-        if response_info['resp_mode']=='keyboard':
-                event.clearEvents()
+    endBlock.text = stim_info["blockEnd"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
+    win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))
+    for frame in range(pause_frames):
+        et.drawFlip(win,[endBlock])
+    event.clearEvents()
 
 all_positions.to_csv(position_file,na_rep=pd.np.nan)
 # end of experiment message
-if response_info['run_mode'] != 'dummy':
-    while True:
-        endExp.draw()
-        win.flip()
-        cont=et.captureResponse(mode=response_info['resp_mode'],keys = [response_info['pause_resp']])    
-        if cont == response_info['pause_resp']:
-            break
+while True:
+    et.drawFlip(win,[endExp])
+    cont=captureResponse(keys = [response_info['pause_resp']])    
+    if cont == response_info['pause_resp']:
+        break
 #cleanup
 et.finishExperiment(win,data_logger,show_results=True)
