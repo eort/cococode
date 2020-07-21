@@ -3,7 +3,7 @@
 ##########################
 ###  IMPORT LIBRARIES  ###
 ##########################
-from psychopy import visual, core, event,gui,logging #import some libraries from PsychoPy
+from psychopy import visual, core, event,gui,logging, monitors #import some libraries from PsychoPy
 import expTools as et # custom scripts
 import json # to load configuration files
 import sys, os # to interact with the operating system
@@ -12,6 +12,7 @@ import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
 import pandas as pd # efficient table operations
 import itertools as it # doing some combinatorics
+import math
 
 # reset all triggers to zero
 os.system("/usr/local/bin/parashell 0x378 0")
@@ -40,7 +41,6 @@ response_info=param['response_info']              # information on response coll
 reward_info=param['reward_info']                  # Information on the reward schedule
 logging_info=param['logging_info']                # information on files and variables for logging
 trigger_info = param['trigger_info']              # information on all the MEG trigger values and names
-n_trials = param['n_trials']                      # number trials per block
 n_blocks = param['n_blocks']                      # number total blocks
 sess_type = param['sess_type']                    # are we practicing or not
 bar = stim_info['progress_bar']                   # make drawing the progressbar less of a pain
@@ -165,7 +165,7 @@ magn_seq = np.array(magn_seq)
 # when will there be pauses in the experiment?
 pause_seq = np.arange(0,trial_seq.shape[0],param['pause_interval'])
 # alternating between target colors across blocks
-color_seq = [colors, colors[::-1]]*round(len(block_types)/2)
+color_seq = [colors, colors[::-1]]*math.ceil(len(block_types)/2)
 # define sequence when a block switch should occur
 change_seq = np.cumsum(pd.Series(blocks).shift())
 change_seq[0] = 0
@@ -191,25 +191,29 @@ select_frames_seq = (select_seq*win_info['framerate']).round().astype(int)
 ###      MAKE STIMULI          ###
 ##################################
 #create a window
-win = visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscreen'], units="pix",screen=1,autoLog=0)
+mon = monitors.Monitor('cocoLab',width = win_info['screen_width'],distance = win_info['screen_distance'])
+mon.setSizePix(win_info['win_size'])
+win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscr'],units="deg",autoLog=0,monitor=mon)
+
+# and text stuff
+startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.35,autoLog=0)
+endBlock = visual.TextStim(win,text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
+endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
+warning = visual.TextStim(win,text=stim_info["warning"],color='white',autoLog=0,height=0.35)
+timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',height=0.35,autoLog=0)
 # and stimuli
-startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0],autoLog=0)
-endBlock = visual.TextStim(win,text= stim_info['endBlock_text'],color=win_info['fg_color'],wrapWidth=win.size[0],autoLog=0)
-endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],wrapWidth=win.size[0],autoLog=0)
-progress_bar =visual.Rect(win,height=bar['height'],lineColor=None,fillColor=bar['color'],pos=[-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
-progress_update =visual.Rect(win,height=bar['height'],lineColor=None,fillColor=bar['color'],autoLog=0)
+progress_bar =visual.Rect(win,height=bar['height'],width=bar['width'],lineColor=None,fillColor=bar['color'],pos=[-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
+progress_update =visual.Rect(win,height=bar['height'],width=0,lineColor=None,fillColor=bar['color'],autoLog=0,pos=(-bar['horiz_dist'],-bar['vert_dist']))
 progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
 progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
-fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size=18) 
-leftbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=win_info['bg_color'],pos = [-stim_info['box_x'],stim_info['box_y']],autoLog=0)
-rightbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=win_info['bg_color'],pos = [stim_info['box_x'],stim_info['box_y']],autoLog=0)
-selectbox = visual.Rect(win,width=stim_info['box_edge']*1.25,height=stim_info['box_edge']*1.25,lineColor=win_info['fg_color'],lineWidth=stim_info['lineWidth'],autoLog=0)
-leftMag = visual.TextStim(win,color=win_info['fg_color'],pos=[-stim_info['box_x'],stim_info['box_y']],autoLog=0)
-rightMag = visual.TextStim(win,color=win_info['fg_color'],pos=[stim_info['box_x'],stim_info['box_y']],autoLog=0)
-timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',wrapWidth=win.size[0],autoLog=0)
-smiley = visual.ImageStim(win,'smiley.png',contrast=-1,size=[stim_info['box_edge']-10,stim_info['box_edge']-10],autoLog=0)
-frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[stim_info['box_edge']-10,stim_info['box_edge']-10],autoLog=0)
-warning = visual.TextStim(win,text=stim_info["warning"],color='white',wrapWidth=win.size[0],units='pix',autoLog=0)
+fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size=0.4) 
+leftbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=None,pos=[-stim_info['box_x'],stim_info['box_y']],autoLog=0)
+rightbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=None,pos=[stim_info['box_x'],stim_info['box_y']],autoLog=0)
+selectbox = visual.Rect(win,width=stim_info['box_edge']*1.25,height=stim_info['box_edge']*1.25,lineColor=win_info['fg_color'],lineWidth=stim_info['line_width'],autoLog=0)
+leftMag = visual.TextStim(win,color=win_info['fg_color'],pos=[-stim_info['box_x'],0],height=0.5,autoLog=0)
+rightMag = visual.TextStim(win,color=win_info['fg_color'],pos = [stim_info['box_x'],0],height=0.5,autoLog=0)
+smiley = visual.ImageStim(win,'smiley.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
+frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -283,11 +287,10 @@ for trial_no in range(trial_seq.shape[0]):
 
     # check whether a button in the response box is currently pressed & present a warning if so
     t0 = core.getTime()
-    if response_info['resp_mode']=='meg':
-        while captureResponse(keys=resp_keys+[None]) in resp_keys:
-            t1=win.flip()
-            if t1-t0>1.0:
-                et.drawFlip(win,[warning]) 
+    while captureResponse(keys=resp_keys+[None]) in resp_keys:
+        t1=win.flip()
+        if t1-t0>1.0:
+            et.drawFlip(win,[warning]) 
 
     ##########################
     ###  FIXATION PHASE    ###
@@ -376,16 +379,15 @@ for trial_no in range(trial_seq.shape[0]):
     ###  FEEDBACK PHASE    ###
     ########################## 
     if reward:   
-        progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.9*reward,progress_bar_start.pos[1])
-        progress_update.width =1.8*reward
-        progress_bar.width += 1.8*reward
-        progress_bar.pos[0] += 0.9*reward
-    if progress_bar.width > 2*bar['horiz_dist']:
-        progress_bar.width=bar['width']
-        progress_bar.pos[0] = -bar['horiz_dist']  
-        progress_update.pos = (progress_bar.width + progress_bar_start.pos[0]- progress_bar_start.width/2+ 0.9*reward,progress_bar_start.pos[1])
-        progress_update.width = 0   
-        trial_info['total_points']+=200          
+        progress_update.width = reward_info['conv_factor']*reward
+        progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2 + progress_update.width/2
+        progress_bar.width+=progress_update.width
+        progress_bar.pos[0]+=progress_update.width/2
+        if progress_bar.width > 2*bar['horiz_dist']:
+            progress_bar.width=0
+            progress_bar.pos[0] = -bar['horiz_dist']  
+            progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2
+            trial_info['total_points']+=200          
 
     # choose feedback stimulus
     if reward != 0:
@@ -401,8 +403,8 @@ for trial_no in range(trial_seq.shape[0]):
             if frame == 5:
                 win.callOnFlip(et.sendTriggers,0,reset=0)
             et.drawFlip(win,feedback_phase+ [feedback])    
-        win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_no']))
-        et.drawFlip(win,fix_phase)
+    win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_no']))
+    et.drawFlip(win,fix_phase)
     ##########################
     ###  LOGGING  PHASE    ###
     ##########################
@@ -429,4 +431,4 @@ while True:
     if cont == response_info['pause_resp']:
         break
 #cleanup
-et.finishExperiment(win,data_logger,show_results=True)
+et.finishExperiment(win,data_logger,show_results=True)  
