@@ -1,16 +1,17 @@
 import os,sys,json
 import pandas as pd
-from IPython import embed as shell
 
 def run(f):
-    
+    # prep files
+    s = 'settings' + f[3:-3] + 'json'
+    out = 'timing' + f[3:-3]+ 'csv'
+    out = os.path.join(os.path.dirname(out),'timing_'+os.path.basename(out))
+    if not os.path.exists(os.path.dirname(out)):
+          os.makedirs(os.path.dirname(out))  
     # load files
-    df = pd.read_csv(f,delimiter='\t',header=None,names = ['timestamp','pp_type','type','idx','message'])
-    s = 'settings' + f[3:] 
-    s = s[:-3] + 'json'
     with open(s) as jsonfile:    
         param = json.load(jsonfile)
-
+    df = pd.read_csv(f,delimiter='\t',header=None,names = ['timestamp','pp_type','type','idx','message'])
     # read out log file
     for cI,c in enumerate(['start_stim','start_fix','start_feed','start_select','start_timeout','end_trial']):
         if cI== 0:
@@ -38,8 +39,9 @@ def run(f):
     timing['diff_resp']= timing['planned_resp_dur']-timing['resp_dur']
 
     # summarize findings
-    summary = timing[['diff_fix','diff_select','diff_feed','diff_resp']].describe()
-    print(summary)
+    summary = timing.describe()
+    summary.to_csv(out)
+    print(timing[['diff_fix','diff_select','diff_feed','diff_resp']].describe())
     return summary
 
 if __name__ == '__main__':

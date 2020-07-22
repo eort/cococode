@@ -20,71 +20,30 @@ def prepDirectories():
         if not os.path.exists(arg):
               os.makedirs(arg)   
 
-def captureResponseMEG(keys = ['m',None],in_queue=None):
+def captureResponseMEG(port=None, keys = ['m',None]):
     """
     system call to read out parallel port
     """    
-    if in_queue == None:   
-        return os.system("/usr/local/bin/pin 0x379")
+    if port.getInError(): 
+        return keys[0]
+    elif port.getInSelected():
+        return keys[1]
     else:
-        in_queue.put(os.system("/usr/local/bin/pin 0x379"))
-
+        return None 
     
-def captureResponseKB(keys = ['m',None],in_queue=None):
+def captureResponseKB(port=None, keys = ['m',None]):
     """
     poll a keyboard response
     """
     resp = event.getKeys()
-    if in_queue == None:
-        if len(resp)>0: return resp[-1]
-        return None   
-    else:
-        if len(resp)>0: in_queue.put(resp[-1])
-        in_queue.put(None)
+    if len(resp)>0: return resp[-1]
+    return None   
 
-def captureResponseDummy(keys = ['m',None],in_queue=None):
+def captureResponseDummy(port=None, keys = ['m',None]):
     """
     poll a keyboard response
     """
-    resp = random.choice(keys)
-    if in_queue == None:
-        return resp
-    else:
-        in_queue.put(resp)
-
-def captureResponse(resp_mode='meg',run_mode='sub',keys = ['m',None],in_queue=None):
-    """
-    Depending on the machine the experiment is running on, it either captures response from
-    parallel port (mode='meg'), randomly (mode='dummy') or by key press (keyboard)
-    """
-
-    if resp_mode=='meg':  
-        if run_mode == 'sub':
-            if in_queue == None:   
-                return os.system("/usr/local/bin/pin 0x379")
-            else:
-                in_queue.put(os.system("/usr/local/bin/pin 0x379"))
-        else:  
-            resp = []
-            if min(np.random.random(100))<0.0001:
-                resp = [np.random.choice(keys)]
-            if in_queue == None:
-                return resp
-            else:
-                in_queue.put(resp)
-    elif resp_mode=='keyboard':
-        if run_mode == 'sub':
-            resp = event.getKeys()
-        else: 
-            resp = []
-            if min(np.random.random(100))<0.0001:
-                resp = [np.random.choice(keys)]
-        if in_queue == None:
-            if len(resp)>0: return resp[-1]
-            return None   
-        else:
-            if len(resp)>0: in_queue.put(resp[-1])
-            in_queue.put(None)
+    return random.choice(keys)
 
 def drawCompositeStim(stim_list):
     """
@@ -93,15 +52,16 @@ def drawCompositeStim(stim_list):
     for stim in stim_list:
         stim.draw()
 
-def fancyFixDot(window,bg_color,fg_color='white',size=30):
+def fancyFixDot(window,bg_color,fg_color='white',size=0.4):
     """
     Objectively the best fixation dot: https://www.sciencedirect.com/science/article/pii/S0042698912003380
+    draws in degrees
     """
     # define two circles and a cross
-    bigCircle = visual.Circle(win=window, size=size,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
-    rect_horiz = visual.Rect(win=window,units="pix",width=size,height=size/6,fillColor=bg_color,lineColor=bg_color,autoLog=0)
-    rect_vert = visual.Rect(win=window,units="pix",width=size/6,height=size,fillColor=bg_color,lineColor=bg_color,autoLog=0)
-    smallCircle = visual.Circle(win=window, size=size/6,units="pix", pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
+    bigCircle = visual.Circle(win=window, size=size, pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
+    rect_horiz = visual.Rect(win=window,width=size,height=size/6,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+    rect_vert = visual.Rect(win=window,width=size/6,height=size,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+    smallCircle = visual.Circle(win=window, size=size/6, pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
     return [bigCircle,rect_horiz,rect_vert,smallCircle]
 
 def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
@@ -113,15 +73,18 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
         anal.runAnal(dataLogger.outpath)
     core.quit()
 
-def sendTriggers(trigger,reset=0.012,prePad=0):
+def sendTriggers(port,trigger,reset=0.012,prePad=0):
     """
     make code easier to read by combining sending triggers with the timeout 
     """
-    core.wait(prePad)
-    os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
-    if reset:
-        core.wait(reset)
-        os.system("/usr/local/bin/parashell 0x378 0")
+    if port!=None:
+        core.wait(prePad)
+        port.setData(trigger)
+        #os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
+        if reset:
+            core.wait(reset)
+            port.setData(0)
+            #os.system("/usr/local/bin/parashell 0x378 0")
 
 class Logger(object):
     """

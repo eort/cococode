@@ -20,13 +20,18 @@ def prepDirectories():
         if not os.path.exists(arg):
               os.makedirs(arg)   
 
-def captureResponseMEG(keys = ['m',None]):
+def captureResponseMEG(port=None, keys = ['m',None]):
     """
     system call to read out parallel port
     """    
-    return os.system("/usr/local/bin/pin 0x379")
+    if port.getInError(): 
+        return keys[0]
+    elif port.getInSelected():
+        return keys[1]
+    else:
+        return None 
     
-def captureResponseKB(keys = ['m',None]):
+def captureResponseKB(port=None,keys = ['m',None]):
     """
     poll a keyboard response
     """
@@ -34,7 +39,7 @@ def captureResponseKB(keys = ['m',None]):
     if len(resp)>0: return resp[-1]
     return None   
 
-def captureResponseDummy(keys = ['m',None]):
+def captureResponseDummy(port=None,keys = ['m',None]):
     """
     poll a keyboard response
     """
@@ -69,15 +74,18 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
         checkTimings.run('log'+dataLogger.outpath[3:-3]+'log')
     core.quit()
 
-def sendTriggers(trigger,reset=0.012,prePad=0):
+def sendTriggers(port,trigger,reset=0.012,prePad=0):
     """
     make code easier to read by combining sending triggers with the timeout 
     """
-    core.wait(prePad)
-    os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
-    if reset:
-        core.wait(reset)
-        os.system("/usr/local/bin/parashell 0x378 0")
+    if port!=None:
+        core.wait(prePad)
+        port.setData(trigger)
+        #os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
+        if reset:
+            core.wait(reset)
+            port.setData(0)
+            #os.system("/usr/local/bin/parashell 0x378 0")
 
 class Logger(object):
     """

@@ -12,10 +12,9 @@ import numpy as np # to do fancy math shit
 import glob # to search in system efficiently
 import pandas as pd # efficient table operations
 import itertools as it # doing some combinatorics
-import math
+import math # can be deleted if the block number issue is fixed
+import parallel # interactions with the parallel port
 
-# reset all triggers to zero
-os.system("/usr/local/bin/parashell 0x378 0")
 #######################################
 ###          LOAD CONFIG FILE     #####
 #######################################
@@ -77,8 +76,10 @@ if sum([bl%(2*reward_info['rep_block']) for bl in param['volatile_blocks']])!=0:
 # choose response functions
 if response_info['resp_mode'] == 'meg':
     captureResponse = et.captureResponseMEG
+    port = parallel.Parallel()
 elif response_info['resp_mode'] == 'keyboard': 
     captureResponse = et.captureResponseKB
+    port = None
 if response_info['run_mode'] == 'dummy':
    captureResponse = et.captureResponseDummy
 
@@ -219,6 +220,9 @@ frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[0.8*stim_info['box_
 event.Mouse(win=None,visible=False)
 event.clearEvents()
 
+# reset all triggers to zero
+et.sendTriggers(port,0)
+
 # experimental phases (unique things on screen)
 fix_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end]
 stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftbox,rightbox,leftMag,rightMag]
@@ -250,7 +254,7 @@ for trial_no in range(trial_seq.shape[0]):
             if cont == response_info['pause_resp']:            
                 while captureResponse(keys=resp_keys+[None]) in resp_keys:
                     win.flip()
-                win.callOnFlip(et.sendTriggers,trigger_info['start_block'],reset = 0.5)
+                win.callOnFlip(et.sendTriggers,port,trigger_info['start_block'],reset = 0.5)
                 win.logOnFlip(level=logging.INFO, msg='start_block\t{}'.format(trial_info['block_no']))
                 win.flip()
                 break
@@ -287,7 +291,7 @@ for trial_no in range(trial_seq.shape[0]):
 
     # check whether a button in the response box is currently pressed & present a warning if so
     t0 = core.getTime()
-    while captureResponse(keys=resp_keys+[None]) in resp_keys:
+    while captureResponse(port,keys=resp_keys+[None]) in resp_keys:
         t1=win.flip()
         if t1-t0>1.0:
             et.drawFlip(win,[warning]) 
@@ -296,10 +300,10 @@ for trial_no in range(trial_seq.shape[0]):
     ###  FIXATION PHASE    ###
     ##########################    
     win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_no'],trial_info['fix_dur']))
-    win.callOnFlip(et.sendTriggers,trigger_info['start_trial'],reset = 0)
+    win.callOnFlip(et.sendTriggers,port,trigger_info['start_trial'],reset = 0)
     for frame in range(fix_frames_seq[trial_no]):
         if frame == 5:
-            win.callOnFlip(et.sendTriggers,0,reset = 0)
+            win.callOnFlip(et.sendTriggers,port,0,reset = 0)
         et.drawFlip(win,fix_phase) 
  
     ##########################
@@ -307,11 +311,11 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################    
     event.clearEvents()
     win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_info['trial_no']))
-    win.callOnFlip(et.sendTriggers,trigger_info['start_stim'], reset = 0) 
+    win.callOnFlip(et.sendTriggers,port,trigger_info['start_stim'], reset = 0) 
     for frame in range(resp_frames): 
         # reset trigger
         if frame == 5:
-            win.callOnFlip(et.sendTriggers,0, reset = 0)
+            win.callOnFlip(et.sendTriggers,port,0, reset = 0)
         # show stim
         if frame==resp_frames-1:
             et.drawFlip(win,fix_phase) 
@@ -323,9 +327,9 @@ for trial_no in range(trial_seq.shape[0]):
         #sample response
         if response_info['run_mode']=='dummy':
             if dummy_resp_frame == frame:
-                response = captureResponse(keys=resp_keys+[None])
+                response = captureResponse(port,keys=resp_keys+[None])
         else:
-            response = captureResponse(keys=resp_keys)
+            response = captureResponse(port,keys=resp_keys)
 
         # break if responded
         if response in resp_keys:
@@ -356,10 +360,10 @@ for trial_no in range(trial_seq.shape[0]):
     else:
         trial_info['timeout'] = 1
         win.logOnFlip(level=logging.INFO, msg='start_timeout\t{}'.format(trial_info['trial_no']))
-        win.callOnFlip(et.sendTriggers,trigger_info['timeout'],reset=0,prePad=0.012)
+        win.callOnFlip(et.sendTriggers,port,trigger_info['timeout'],reset=0,prePad=0.012)
         for frame in range(select_frames_seq[trial_no]):
             if frame == 5:
-                win.callOnFlip(et.sendTriggers,0,reset=0)
+                win.callOnFlip(et.sendTriggers,port,0,reset=0)
             et.drawFlip(win,timeout_phase)
 
     # handle reward
@@ -398,10 +402,10 @@ for trial_no in range(trial_seq.shape[0]):
     # show it
     if not trial_info['timeout']:
         win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_info['trial_no']))
-        win.callOnFlip(et.sendTriggers,trigger_info['start_feed'],reset=0)
+        win.callOnFlip(et.sendTriggers,port,trigger_info['start_feed'],reset=0)
         for frame in range(feed_frames):
             if frame == 5:
-                win.callOnFlip(et.sendTriggers,0,reset=0)
+                win.callOnFlip(et.sendTriggers,port,0,reset=0)
             et.drawFlip(win,feedback_phase+ [feedback])    
     win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_no']))
     et.drawFlip(win,fix_phase)
@@ -417,7 +421,7 @@ for trial_no in range(trial_seq.shape[0]):
     if trial_info['trial_no'] in pause_seq:
         # show text at the end of a block 
         endBlock.text = stim_info["endBlock_text"].format(trial_info['pause_no'],trial_info['total_points'])
-        win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))    
+        win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['pause_no']))    
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
         # clear any pending key presses
@@ -427,7 +431,7 @@ for trial_no in range(trial_seq.shape[0]):
 endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
 while True:
     et.drawFlip(win,[endExp])
-    cont=captureResponse(keys = [response_info['pause_resp'],None])    
+    cont=captureResponse(port,keys=[response_info['pause_resp'],None])    
     if cont == response_info['pause_resp']:
         break
 #cleanup
