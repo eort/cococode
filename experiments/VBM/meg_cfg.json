@@ -1,6 +1,7 @@
 {
     "name":"vbm",
-    "version":"2.2",
+    "version":"2.4",
+    "proj_id":"bip",
     "exp_id":"meg_beh",
     "sess_type":"meg",
     "n_blocks":10,

@@ -73,7 +73,7 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
         anal.runAnal(dataLogger.outpath)
     core.quit()
 
-def sendTriggers(port,trigger,reset=0.012,prePad=0):
+def sendTriggers(port,trigger,reset=0,prePad=0):
     """
     make code easier to read by combining sending triggers with the timeout 
     """

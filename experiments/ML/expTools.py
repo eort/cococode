@@ -74,7 +74,7 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
         checkTimings.run('log'+dataLogger.outpath[3:-3]+'log')
     core.quit()
 
-def sendTriggers(port,trigger,reset=0.012,prePad=0):
+def sendTriggers(port,trigger,reset=0,prePad=0):
     """
     make code easier to read by combining sending triggers with the timeout 
     """

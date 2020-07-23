@@ -3,17 +3,16 @@
 ##########################
 ###  IMPORT LIBRARIES  ###
 ##########################
-from psychopy import visual, core, event,gui,logging, monitors #import some libraries from PsychoPy
-import expTools as et # custom scripts
-import json # to load configuration files
-import sys, os # to interact with the operating system
-from datetime import datetime # to get the current time
-import numpy as np # to do fancy math shit
-import glob # to search in system efficiently
-import pandas as pd # efficient table operations
-import itertools as it # doing some combinatorics
-import math # can be deleted if the block number issue is fixed
-import parallel # interactions with the parallel port
+from psychopy import visual, core, event,gui,logging, monitors  # import some libraries from PsychoPy
+import expTools as et                                           # custom scripts
+import json                                                     # to load configuration files
+import sys, os                                                  # to interact with the operating system
+from datetime import datetime                                   # to get the current time
+import numpy as np                                              # to do fancy math shit
+import glob                                                     # to search in system efficiently
+import pandas as pd                                             # neat way of storing and writing data
+import parallel                                                 # communication with the parallel port
+import itertools as it                                          # doing some combinatorics
 
 #######################################
 ###          LOAD CONFIG FILE     #####
@@ -103,8 +102,8 @@ trial_info = {"sub_id":input_dict['sub_id'],
                 'total_points':0,
                 'block_no':0,
                 'pause_no':0,
-                'logFileID':logFileID,
-                "start_exp_time":core.getTime()}
+                'logFileID':logFileID}
+
 # add variables to the logfile that are defined in config file
 for vari in logging_info['logVars']:
     trial_info[vari] = param[vari]
@@ -120,14 +119,19 @@ rgb_dict = stim_info['stim_colors']
 
 # select colors from predefined options based on sub id
 if trial_info['sess_type']=='meg':
-    color_idx = [(x,y,z) for (x,y,z) in it.product(range(3),range(3),range(3)) if x!=y and y!=z and x!=z][trial_info['sub_id']%6]
+    if trial_info['proj_id']=='lorasick':
+        color_idx=[(0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)][trial_info['sub_id']%6]
+    elif trial_info['proj_id']=='bip':
+        color_idx=[(0,1),(1,0)][trial_info['sub_id']%2]
+    else:
+        logging.warning('WARNING: The proj ID is unknown. Unclear for how many sessions colors need to be counterbalanced.')
     colors = stim_info['color_combinations'][color_idx[trial_info['sess_id']-1]]
 else:
     colors = stim_info['color_combinations'][0]
 np.random.shuffle(colors)
 
-# counterbalance the order of volatile and stable blocks across subs and sessions
-block_type_order = ['sv','vs'][trial_info['sub_id']%2] # (v)olatile, (s)table
+# counterbalance the order of volatile and stable blocks across subs and sessions (make sure that balancing is orthogonal to color counterbalancing)
+block_type_order = ['sv','vs'][trial_info['sub_id']%6<2] # (v)olatile, (s)table
 np.random.shuffle(param['volatile_blocks'])
 if block_type_order == 'sv':
     block_types = ['stable']+['volatile']*round(len(param['volatile_blocks']))
@@ -137,8 +141,6 @@ else:
     blocks = param['volatile_blocks']+param['stable_blocks']
 
 # create building blocks of possible location/validity combinations 
-# currently it only works with 80-20%. Having 75 oder 70 will require reprogramming to allow for perfectly balanced trials
-# proper ratio of valid and invalid trials (highlikely color will bring reward)
 reward_ratio = np.array([1]*round(reward_info['high_prob']*reward_info['rep_block'])+[0]*round((1-reward_info['high_prob'])*reward_info['rep_block']))
 # extend this balanced ratio to location (left,right)
 # 0 unreward left, 1 rewarded left, 2 unrewarded right, rewarded right
@@ -151,7 +153,6 @@ for n_trials in blocks:
     # per consistent block, generate all trial types
     target_reward_side = np.repeat(reward_ratio_both_sides,n_trials/len(reward_ratio_both_sides)).tolist()
     # per consistent block, generate all magnitude options (unbalanced)
-    np.random.shuffle(reward_info['mags'])
     magnitudes = np.array(reward_info['mags'])
     for reps in range(round(n_trials/len(reward_info['mags']))-1):
         magnitudes = np.concatenate((magnitudes,reward_info['mags'])).tolist()
@@ -166,7 +167,7 @@ magn_seq = np.array(magn_seq)
 # when will there be pauses in the experiment?
 pause_seq = np.arange(0,trial_seq.shape[0],param['pause_interval'])
 # alternating between target colors across blocks
-color_seq = [colors, colors[::-1]]*math.ceil(len(block_types)/2)
+color_seq = [colors, colors[::-1]]*round(len(block_types)/2)
 # define sequence when a block switch should occur
 change_seq = np.cumsum(pd.Series(blocks).shift())
 change_seq[0] = 0
@@ -179,8 +180,8 @@ reward_validity_seq = ['valid' if i in [1,3] else 'invalid' for i in trial_seq]
 ####################
 ###  SET TIMING  ###
 ####################
-fix_seq = np.random.uniform(timing_info['fix_mean']-timing_info['fix_range'],timing_info['fix_mean']+timing_info['fix_range'], size=trial_seq.shape)
-select_seq = np.random.uniform(timing_info['select_mean']-timing_info['select_range'],timing_info['select_mean']+timing_info['select_range'], size=trial_seq.shape)
+fix_seq=np.random.uniform(timing_info['fix_mean']-timing_info['fix_range'],timing_info['fix_mean']+timing_info['fix_range'],size=trial_seq.shape)
+select_seq=np.random.uniform(timing_info['select_mean']-timing_info['select_range'],timing_info['select_mean']+timing_info['select_range'],size=trial_seq.shape)
 # convert timing to frames
 pause_frames = round(timing_info['pause_dur']*win_info['framerate'])
 feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
@@ -247,14 +248,14 @@ for trial_no in range(trial_seq.shape[0]):
     if trial_no in pause_seq:
         # reset block variables
         trial_info['pause_no'] += 1     
-        startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'])
+        startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'],pause_seq.shape[0]+1)
         while True:
             et.drawFlip(win,[startBlock])                       
-            cont=captureResponse(keys = [response_info['pause_resp'],None])    
+            cont=captureResponse(port,keys = [response_info['pause_resp'],None])    
             if cont == response_info['pause_resp']:            
-                while captureResponse(keys=resp_keys+[None]) in resp_keys:
+                while captureResponse(port, keys=resp_keys+[None]) in resp_keys:
                     win.flip()
-                win.callOnFlip(et.sendTriggers,port,trigger_info['start_block'],reset = 0.5)
+                win.callOnFlip(et.sendTriggers,port,trigger_info['start_block'],reset =.5)
                 win.logOnFlip(level=logging.INFO, msg='start_block\t{}'.format(trial_info['block_no']))
                 win.flip()
                 break
@@ -264,11 +265,9 @@ for trial_no in range(trial_seq.shape[0]):
     if 'q' in escape:
         et.finishExperiment(win,data_logger)
 
-    # reset variables
-    reward=0
+    # reset/ set trial variables
     response =None
-
-    # set trial variables
+    trial_info['reward'] = 0   
     trial_info['corr_resp'] = target_side_seq[trial_no]
     trial_info['trial_no'] = trial_no+1
     trial_info['fix_dur'] = fix_seq[trial_no]
@@ -277,8 +276,7 @@ for trial_no in range(trial_seq.shape[0]):
     trial_info['mag_right'] = magn_seq[trial_no][1]
     trial_info['high_prob_side'] = target_side_seq[trial_no]
     trial_info['reward_validity'] = reward_validity_seq[trial_no]
-    # choose a random response frame if response mode is dummy     
-    dummy_resp_frame = np.random.choice(range(resp_frames))
+    
     # set stimulus   
     if trial_info['high_prob_side'] == 'left':
         rightbox.fillColor = rgb_dict[high_prob_color]
@@ -292,18 +290,17 @@ for trial_no in range(trial_seq.shape[0]):
     # check whether a button in the response box is currently pressed & present a warning if so
     t0 = core.getTime()
     while captureResponse(port,keys=resp_keys+[None]) in resp_keys:
-        t1=win.flip()
-        if t1-t0>1.0:
+        if core.getTime()-t0>1.0:
             et.drawFlip(win,[warning]) 
 
     ##########################
     ###  FIXATION PHASE    ###
     ##########################    
     win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_no'],trial_info['fix_dur']))
-    win.callOnFlip(et.sendTriggers,port,trigger_info['start_trial'],reset = 0)
+    win.callOnFlip(et.sendTriggers,port,trigger_info['start_trial'])
     for frame in range(fix_frames_seq[trial_no]):
         if frame == 5:
-            win.callOnFlip(et.sendTriggers,port,0,reset = 0)
+            win.callOnFlip(et.sendTriggers,port,0)
         et.drawFlip(win,fix_phase) 
  
     ##########################
@@ -311,23 +308,22 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################    
     event.clearEvents()
     win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_info['trial_no']))
-    win.callOnFlip(et.sendTriggers,port,trigger_info['start_stim'], reset = 0) 
+    win.callOnFlip(et.sendTriggers,port,trigger_info['start_stim']) 
     for frame in range(resp_frames): 
         # reset trigger
         if frame == 5:
-            win.callOnFlip(et.sendTriggers,port,0, reset = 0)
+            win.callOnFlip(et.sendTriggers,port,0)
         # show stim
         if frame==resp_frames-1:
             et.drawFlip(win,fix_phase) 
-        elif frame ==0:
+        elif frame==0:
             trial_info['start_stim_time'] = et.drawFlip(win,stim_phase) 
         else:
             et.drawFlip(win,stim_phase) 
 
         #sample response
         if response_info['run_mode']=='dummy':
-            if dummy_resp_frame == frame:
-                response = captureResponse(port,keys=resp_keys+[None])
+            response = np.random.choice(resp_keys+[None]*resp_frames)
         else:
             response = captureResponse(port,keys=resp_keys)
 
@@ -360,30 +356,31 @@ for trial_no in range(trial_seq.shape[0]):
     else:
         trial_info['timeout'] = 1
         win.logOnFlip(level=logging.INFO, msg='start_timeout\t{}'.format(trial_info['trial_no']))
-        win.callOnFlip(et.sendTriggers,port,trigger_info['timeout'],reset=0,prePad=0.012)
+        win.callOnFlip(et.sendTriggers,port,trigger_info['timeout'],prePad=0.012)
         for frame in range(select_frames_seq[trial_no]):
             if frame == 5:
-                win.callOnFlip(et.sendTriggers,port,0,reset=0)
+                win.callOnFlip(et.sendTriggers,port,0)
             et.drawFlip(win,timeout_phase)
 
     # handle reward
     if trial_info['high_prob_side']==resp_keys[0]:
         if trial_info['reward_validity']=='valid' and trial_info['resp_key'] == resp_keys[0]: 
-            reward = trial_info['mag_left']
+            trial_info['reward']= trial_info['mag_left']
         elif trial_info['reward_validity']=='invalid' and trial_info['resp_key'] == resp_keys[1]: 
-            reward = trial_info['mag_right']
+            trial_info['reward']= trial_info['mag_right']
     elif trial_info['high_prob_side']==resp_keys[1]:
         if trial_info['reward_validity'] =='valid' and trial_info['resp_key'] == resp_keys[1]: 
-            reward = trial_info['mag_right']
+            trial_info['reward']= trial_info['mag_right']
         elif trial_info['reward_validity']=='invalid' and trial_info['resp_key'] == resp_keys[0]: 
-            reward = trial_info['mag_left']
-    trial_info['reward'] = reward
+            trial_info['reward']= trial_info['mag_left']
+
     
     ##########################
     ###  FEEDBACK PHASE    ###
     ########################## 
-    if reward:   
-        progress_update.width = reward_info['conv_factor']*reward
+    if trial_info['reward']:   
+        feedback = smiley
+        progress_update.width = reward_info['conv_factor']*trial_info['reward']
         progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2 + progress_update.width/2
         progress_bar.width+=progress_update.width
         progress_bar.pos[0]+=progress_update.width/2
@@ -392,27 +389,24 @@ for trial_no in range(trial_seq.shape[0]):
             progress_bar.pos[0] = -bar['horiz_dist']  
             progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2
             trial_info['total_points']+=200          
-
-    # choose feedback stimulus
-    if reward != 0:
-        feedback = smiley
     else:
         feedback = frowny
 
     # show it
     if not trial_info['timeout']:
         win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_info['trial_no']))
-        win.callOnFlip(et.sendTriggers,port,trigger_info['start_feed'],reset=0)
+        win.callOnFlip(et.sendTriggers,port,trigger_info['start_feed'])
         for frame in range(feed_frames):
             if frame == 5:
-                win.callOnFlip(et.sendTriggers,port,0,reset=0)
+                win.callOnFlip(et.sendTriggers,port,0)
             et.drawFlip(win,feedback_phase+ [feedback])    
-    win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_no']))
-    et.drawFlip(win,fix_phase)
+
     ##########################
     ###  LOGGING  PHASE    ###
     ##########################
-
+    win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_no']))
+    et.drawFlip(win,fix_phase)
+    
     if trial_info['trial_no'] == 1:
         data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
     data_logger.writeTrial(trial_info)
@@ -424,15 +418,13 @@ for trial_no in range(trial_seq.shape[0]):
         win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['pause_no']))    
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
-        # clear any pending key presses
-        event.clearEvents()
+    # clear any pending key presses
+    event.clearEvents()
 
 # end of experiment message
 endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
-while True:
+while et.captureResponseKB(port,keys = ['q']) != 'q':
     et.drawFlip(win,[endExp])
-    cont=captureResponse(port,keys=[response_info['pause_resp'],None])    
-    if cont == response_info['pause_resp']:
-        break
-#cleanup
+
+# clean up
 et.finishExperiment(win,data_logger,show_results=True)  

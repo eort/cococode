@@ -1,6 +1,7 @@
 {
     "name":"vbm",
     "version":"2.4",
+    "proj_id":"bip",
     "exp_id":"screening_beh",
     "sess_type":"screening",
     "n_blocks":10,

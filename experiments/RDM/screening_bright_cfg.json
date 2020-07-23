@@ -1,6 +1,7 @@
 {
     "name":"rdm",
     "version":"2.5",
+    "proj_id":"lorasick",
     "exp_id":"screening_beh",
     "sess_type":"screening",
     "n_blocks":17,
@@ -10,7 +11,7 @@
     "dir2":0,
     "coherence_lvl":[0.025, 0.05, 0.1, 0.2, 0.4],
     "win_info":{"framerate":60,
-                "fullscreen":1,
+                "fullscr":1,
                 "screen_width":53,
                 "screen_distance":80,
                 "bg_color":[0.5,0.5,0.5],
