@@ -84,7 +84,7 @@ log_file = os.path.join('log',param['exp_id'],logFileID+'.log')
 # create a output file that collects all variables 
 output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
 # one more outputfile for the dot position per frame block,trial
-position_file = os.path.join('positions',param['exp_id'],logFileID+'.csv')
+position_file = os.path.join('positions',param['exp_id'],logFileID+'_block-{}.pkl')
 # save the current settings per session, so that the data files stay slim
 settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
 for f in [log_file,position_file,settings_file,output_file]:
@@ -94,10 +94,10 @@ os.system('cp {} {}'.format(jsonfile,settings_file))
 lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
 # init logger: update the constant values (things that wont change)
-trial_info = {"sub_id":input_dict['sub_id'],
-                "sess_id":input_dict['sess_id'],
-                "sess_type":input_dict['sess_type'],
-                "trial_count":0,
+trial_info = {'sub_id':input_dict['sub_id'],
+                'sess_id':input_dict['sess_id'],
+                'sess_type':input_dict['sess_type'],
+                'trial_count':0,
                 'logFileID':logFileID}
 
 for vari in logging_info['logVars']:
@@ -118,8 +118,7 @@ n_dots = int(rdk['dotperdva']*0.5*rdk['cloud_size']**2*np.pi)
 # set response keys
 resp_keys = [response_info['resp_left'],response_info['resp_right']]
 # prepare a dataframe specifically for the stimulus positions
-indices=pd.MultiIndex.from_tuples([(a+1,b+1) for a in range(n_blocks) for b in range(n_trials+param['n_zero'])], names=['block_no', 'trial_no'])
-all_positions = pd.DataFrame(columns= {'positions':np.nan}, index=indices) 
+all_positions = pd.DataFrame(columns= {'positions':np.nan}, index={'trial_no':[(b+1) for b in range(n_trials+param['n_zero'])]})
 
 ################################
 ###    MAKE STIMULI          ###
@@ -139,7 +138,7 @@ warning = visual.TextStim(win,text=stim_info["warning"],color=win_info['fg_color
 feedback = visual.TextStim(win,text='',color=win_info['fg_color'],height=0.4,autoLog=0)
 fixDot = et.fancyFixDot(win,fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=0.4) 
 cloud=visual.DotStim(win,color=win_info['fg_color'],fieldSize=rdk['cloud_size'],nDots=n_dots,dotLife=rdk['dotLife'],dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape='circle',coherence=0)
-
+middle = visual.Circle(win, size=3, pos=[0,0],lineColor=None,fillColor=win_info['bg_color'],autoLog=0)
 # reset all triggers to zero
 et.sendTriggers(port,0)
 
@@ -276,7 +275,8 @@ for block_no in range(n_blocks):
                 elif frame==noise_frames+5:
                     win.callOnFlip(et.sendTriggers,port,0)     
                 win.logOnFlip(level=logging.INFO, msg='cloud_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
-                et.drawFlip(win,fixDot + [cloud]) 
+                et.drawFlip(win,[cloud,middle]+fixDot) 
+                #et.drawFlip(win,[cloud]+fixDot) 
             else:               
                 win.logOnFlip(level=logging.INFO, msg='nostim_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
                 et.drawFlip(win,fixDot)
@@ -334,19 +334,21 @@ for block_no in range(n_blocks):
         data_logger.writeTrial(trial_info)
 
         # keep track of dot positions        
-        all_positions.loc[(trial_info['block_no'],trial_info['trial_no']),'positions'] = dot_positions
+        all_positions.loc[trial_info['trial_no'],'positions'] = dot_positions
 
     # show end of block text
-    endBlock.text = stim_info["blockEnd"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
-    win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))
-    for frame in range(pause_frames):
-        et.drawFlip(win,[endBlock])
+    if trial_info['block_no'] != n_blocks:
+        endBlock.text = stim_info["blockEnd"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
+        win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))
+        for frame in range(pause_frames):
+            et.drawFlip(win,[endBlock])
     event.clearEvents()
 
+    all_positions.to_pickle(position_file.format(trial_info['block_no']))
 # end of experiment message
 while et.captureResponseKB(port,keys = ['q']) != 'q':
     et.drawFlip(win,[endExp])
 
 #cleanup
-all_positions.to_csv(position_file,na_rep=pd.np.nan)
+
 et.finishExperiment(win,data_logger,show_results=True)
