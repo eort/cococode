@@ -1,1 +1,0 @@
-4.1465 	ERROR 	Error in handleLineEditChange: inputFieldName=sess_id, type=<class 'int'>, value=, error=invalid literal for int() with base 10: ''
