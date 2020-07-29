@@ -19,13 +19,13 @@ import parallel                                                 # communication 
 try:
     jsonfile = sys.argv[1]
 except IndexError as e:
-    print("No config file provided. Stop it here.")
+    logging.error("No config file provided. Stop it here.")
     sys.exit(-1)
 try:
     with open(jsonfile) as f:    
         param = json.load(f)
 except FileNotFoundError as e:
-    print("{} is not a valid config file. Stop it here.".format(jsonfile))
+    logging.error("{} is not a valid config file. Stop it here.".format(jsonfile))
     sys.exit(-1)
 
 ###########################################
@@ -39,31 +39,25 @@ logging_info=param['logging_info']                # information on files and var
 trigger_info = param['trigger_info']              # information on all the MEG trigger values and names
 n_trials = param['n_trials']                      # number trials per block
 n_blocks = param['n_blocks']                      # number total blocks
-sess_type = param['sess_type']                    # are we practicing or not
 rdk = stim_info['cloud_specs']                    # info on RDK
 
 ###########################################
 ###         HANDLE INPUT DIALOG        ####
 ###########################################
 # dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
-inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
+input_dict = dict(sub_id=0,sess_id=0)
+inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id'])
 
 # check for input
 if inputGUI.OK == False:
-    print("Experiment aborted by user")
+    logging.warning("Experiment aborted by user")
     core.quit()
-while input_dict['sess_id'] not in [1,2,3]:
-    print('WARNING: You need to specify a session number (1,2,3)')
+while input_dict['sess_id'] not in list(range(1,param['n_sess']+1))+['scr','prac']:
+    logging.warning('WARNING: You need to specify a session number in the range {}'.format(list(range(1,param['n_sess']+1))))
     inputGUI.show()
     if inputGUI.OK == False:
-        print("Experiment aborted by user")
+        logging.warning("Experiment aborted by user")
         core.quit()
-
-# check whether settings match config file
-if sess_type!=input_dict['sess_type']:
-    print('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
-    logging.warning('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
 
 ###########################################
 ###           SET UP OVERHEAD          ####
@@ -80,13 +74,15 @@ if response_info['run_mode'] == 'dummy':
 
 # prepare the logfile (general log file, not data log file!) and directories
 logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
-log_file = os.path.join('log',param['exp_id'],logFileID+'.log')
+log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['sess_id'],'log')
 # create a output file that collects all variables 
-output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
-# one more outputfile for the dot position per frame block,trial
-position_file = os.path.join('positions',param['exp_id'],logFileID+'_block-{}.pkl')
+output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['sess_id'],'beh')
 # save the current settings per session, so that the data files stay slim
-settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
+settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(input_dict['sub_id'],input_dict['sess_id'],'settings')
+# save dot positions for each dot on each frame, trial and block
+position_file = os.path.join(os.path.join('sub-{:02d}','ses-{}','{}').format(input_dict['sub_id'],input_dict['sess_id'],'dot_xy'),logFileID+'_block-{}.pkl')
+
+
 for f in [log_file,position_file,settings_file,output_file]:
     if not os.path.exists(os.path.dirname(f)): 
         os.makedirs(os.path.dirname(f))
@@ -96,7 +92,6 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # init logger: update the constant values (things that wont change)
 trial_info = {'sub_id':input_dict['sub_id'],
                 'sess_id':input_dict['sess_id'],
-                'sess_type':input_dict['sess_type'],
                 'trial_count':0,
                 'logFileID':logFileID}
 
@@ -108,7 +103,7 @@ for vari in logging_info['logVars']:
 ###########################################
 
 # prepare coherence levels of dots
-if trial_info['sess_type'] != 'practice':
+if trial_info['sess_id'] != 'prac':
     coherence_lvls = param['coherence_lvl']  
 else:
     coherence_lvls = [0.3+coh for coh in param['coherence_lvl']]
@@ -241,7 +236,7 @@ for block_no in range(n_blocks):
         ###  FIXATION PHASE    ###
         ##########################   
         # start trial and draw fixation and wait for 
-        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}'.format(trial_info['trial_count']))
+        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_count'],timing_info['fix_dur']+0.008))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_fix'])  
         for frame in range(fix_frames):
             if frame == 5:
@@ -274,13 +269,13 @@ for block_no in range(n_blocks):
                     win.timeOnFlip(stimTime,'onset')
                 elif frame==noise_frames+5:
                     win.callOnFlip(et.sendTriggers,port,0)     
-                win.logOnFlip(level=logging.INFO, msg='cloud_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
-                et.drawFlip(win,[cloud,middle]+fixDot) 
-                #et.drawFlip(win,[cloud]+fixDot) 
+                #et.drawCompositeStim([cloud,middle]+fixDot)
+                et.drawCompositeStim([cloud]+fixDot)
             else:               
-                win.logOnFlip(level=logging.INFO, msg='nostim_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
-                et.drawFlip(win,fixDot)
-
+                et.drawCompositeStim(fixDot)
+            win.logOnFlip(level=logging.INFO, msg='stim_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
+            win.flip()
+                
             # save dot position
             dot_positions[frame,:,:] = cloud.verticesPix            
 
@@ -293,9 +288,6 @@ for block_no in range(n_blocks):
             if response in resp_keys:
                 break  
 
-        win.logOnFlip(level=logging.INFO, msg='resp_time\t{}'.format(trial_info['trial_count']))
-        et.drawFlip(win,fixDot)
-
         ##########################
         ###  POST PROCESSING   ###
         ##########################
@@ -303,6 +295,9 @@ for block_no in range(n_blocks):
         trial_info['resp_key'] = response
         trial_info['correct'] = int(response==trial_info['corr_resp'])
         trial_info['total_correct']+=trial_info['correct']  
+
+        win.logOnFlip(level=logging.INFO, msg='resp_time\t{}\t{}'.format(trial_info['trial_count'],trial_info['resp_time']))
+        et.drawFlip(win,fixDot)
 
         # check for too early or too late responses
         if frame == dot_frames-1:
@@ -316,7 +311,7 @@ for block_no in range(n_blocks):
         # show feedback if no response was given       
         if trial_info['timeout'] == 1 or trial_info['early_response'] == 1:
             trial_info['correct'] = np.nan
-            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_info['trial_count']))
+            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}\t{}'.format(trial_info['trial_count'],timing_info['feed_dur']+0.008))
             win.callOnFlip(et.sendTriggers,port,trigger_info['start_feedback'], prePad=0.024)
             for frame in range(feed_frames):
                 if frame == 5:

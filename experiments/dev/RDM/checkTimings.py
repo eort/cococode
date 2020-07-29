@@ -3,7 +3,6 @@ checks whether the timing of the experiments is within reasonable limits.
 """
 import sys,json
 import pandas as pd
-from IPython import embed as shell
 import numpy as np
 
 def run(f):
@@ -13,48 +12,44 @@ def run(f):
     s = s[:-3] + 'json'
     with open(s) as jsonfile:    
         param = json.load(jsonfile)
-    shell()
+    print(df)
     # read out frame info
-    stim_frame=df[['timestamp','idx','message']].loc[df.type.str.contains('cloud_frame')].set_index(['idx','message']).rename(columns={'timestamp':'cloud_frame'})
-    nostim_frame=df[['timestamp','idx','message']].loc[df.type.str.contains('nostim_frame')].set_index(['idx','message']).rename(columns={'timestamp':'nostim_frame'})
+    stim_frame=df[['timestamp','idx','message']].loc[df.type.str.contains('stim_frame')].set_index(['idx','message']).rename(columns={'timestamp':'stim_frame'})
 
-    # summarize frame info
-    stim_frame['cloud_frame']= stim_frame.groupby('idx').diff(1)
-    cloud_frame_summary= stim_frame['frame'].describe(percentiles=np.linspace(0,1,11))
-    nostim_frame['frame']=nostim_frame.groupby('idx').diff(1)
-    nostim_frame_summary=nostim_frame['frame']= nostim_frame.frame.describe(percentiles=np.linspace(0,1,11))  
-    print(cloud_frame_summary,nostim_frame_summary)
+    percentiles = [0.01,0.05,0.1,0.3,0.5,0.7,0.9,0.95,0.99]
+    
+    # summarize frame info during stimulus time
+    stim_frame['frame_duration']= stim_frame.groupby('idx').diff(1)
+    frame_summary= stim_frame['frame_duration'].describe(percentiles=percentiles)
+    print(frame_summary)
 
-    # last frame of each phase
-    end_cloud_time = stim_frame.reset_index().groupby('idx').max()
-    end_stim_time = nostim_frame.reset_index().groupby('idx').max()
-
-    # read out log file
+    # read out log file and measure when things happened
     for cI,c in enumerate(['start_stim','start_fix','start_feed','start_noise','end_trial','resp_time']):
         if cI== 0:
             timing=df[['timestamp','idx']].loc[df.type.str.contains(c)].set_index('idx').rename(columns={'timestamp':c})
         else:
             timing=timing.join(df[['timestamp','idx']].loc[df.type.str.contains(c)].set_index('idx').rename(columns={'timestamp':c}))
 
-    # compute phase durations
+    # compute actual times
     timing['fix_dur'] = timing['start_noise']- timing['start_fix']
     timing['noise_dur'] = timing['start_stim']- timing['start_noise']
+    timing['stim_dur'] = timing['resp_time']- timing['start_stim']
     timing['feed_dur'] = timing['end_trial']- timing['start_feed']
-    timing['trial_dur'] = timing['end_trial']- timing['start_fix']
 
-    timing= timing.join(df[['message','idx']].loc[df.type.str.contains('start_noise')].set_index('idx').rename(columns={'message':'planned_noise_dur'}))
-    timing['planned_feed_dur'] = param['timing_info']['feed_dur']+0.008
-    timing['planned_fix_dur'] = param['timing_info']['fix_dur']+0.008
-    
-    # compute timing accuracy
-    timing['diff_feed']= timing['planned_feed_dur']-timing['feed_dur']
-    timing['diff_noise']= timing['planned_noise_dur']-timing['noise_dur']
-    timing['diff_fix']= timing['planned_fix_dur']-timing['fix_dur']
+    # load planned times
+    for m in ['start_noise','resp_time','start_fix','start_feed']:
+        timing= timing.join(df[['message','idx']].loc[df.type.str.contains(m)].set_index('idx').rename(columns={'message':'planned_{}'.format(m)}))
+
+    # compare planned times to actual measured times
+    timing['diff_feed']= timing['planned_start_feed']-timing['feed_dur']
+    timing['diff_noise']= timing['planned_start_noise']-timing['noise_dur']
+    timing['diff_fix']= timing['planned_start_fix']-timing['fix_dur']
+    timing['diff_stim']= timing['planned_resp_time']-(timing['stim_dur']-(1/60))
     
     # summarize findings
-    summary = timing[['diff_fix','diff_noise','diff_feed']].describe()
+    summary = timing[['diff_fix','diff_noise','diff_feed','diff_stim']].describe(percentiles)
     print(summary)
-    return summary
+
 if __name__ == '__main__':
     try:
         f = sys.argv[1]
