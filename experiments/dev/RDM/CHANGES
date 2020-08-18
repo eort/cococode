@@ -7,3 +7,4 @@
     - add a start experiment screen (minimal info), proceed by pressing "c"
     - show performance at the end of experiment
     - already give the go/nogo decision on the last screen)
+    - provide a default ses_id (stored as string, so use 01,02,etc., instead of 1,2,etc.)

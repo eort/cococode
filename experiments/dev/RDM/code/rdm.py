@@ -45,21 +45,18 @@ rdk = stim_info['cloud_specs']                    # info on RDK
 ###########################################
 ###         HANDLE INPUT DIALOG        ####
 ###########################################
-# dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0)
-inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id'])
-
-# check for input
-if inputGUI.OK == False:
-    logging.warning("Experiment aborted by user")
-    core.quit()
-while input_dict['sess_id'] not in list(range(1,param['n_ses']+1))+['scr','prac']:
-    logging.warning('WARNING: You need to specify a session number in the range {}'.format(list(range(1,param['n_ses']+1))))
+# dialog with participants: Retrieve Subject number, session number
+input_dict = dict(sub_id=0,ses_id=param['ses_id'])
+inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','ses_id'],show=False)
+while True:
     inputGUI.show()
     if inputGUI.OK == False:
         logging.warning("Experiment aborted by user")
         core.quit()
-
+    if  input_dict['ses_id'] in ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)] +['scr','prac','pilot']:
+        break
+    else:
+        logging.warning('WARNING: {} is not a valid ses_id'.format(input_dict['ses_id']))
 ###########################################
 ###           SET UP OVERHEAD          ####
 ###########################################
@@ -74,14 +71,14 @@ if response_info['run_mode'] == 'dummy':
    captureResponse = et.captureResponseDummy
 
 # prepare the logfile (general log file, not data log file!) and directories
-logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
-log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['sess_id'],'log')
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['ses_id'],'log')
 # create a output file that collects all variables 
-output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['sess_id'],'beh')
+output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['ses_id'],'beh')
 # save the current settings per session, so that the data files stay slim
-settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(input_dict['sub_id'],input_dict['sess_id'],'settings')
+settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(input_dict['sub_id'],input_dict['ses_id'],'settings')
 # save dot positions for each dot on each frame, trial and block
-position_file = os.path.join(os.path.join('sub-{:02d}','ses-{}','{}').format(input_dict['sub_id'],input_dict['sess_id'],'dot_xy'),logFileID+'_block-{}.pkl')
+position_file = os.path.join(os.path.join('sub-{:02d}','ses-{}','{}').format(input_dict['sub_id'],input_dict['ses_id'],'dot_xy'),logFileID+'_block-{}.pkl')
 
 for f in [log_file,position_file,settings_file,output_file]:
     if not os.path.exists(os.path.dirname(f)): 
@@ -91,7 +88,7 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
 # init logger: update the constant values (things that wont change)
 trial_info = {'sub_id':input_dict['sub_id'],
-                'sess_id':input_dict['sess_id'],
+                'ses_id':input_dict['ses_id'],
                 'trial_count':0,
                 'logFileID':logFileID}
 
@@ -101,7 +98,6 @@ for vari in logging_info['logVars']:
 ###########################################
 ###  PREPARE EXPERIMENTAL SEQUENCE     ####
 ###########################################
-
 n_cohs = len(coherence_lvls)
 n_dots = int(rdk['dotperdva']*0.5*rdk['cloud_size']**2*np.pi)
 
@@ -144,7 +140,6 @@ noise_seq = np.random.uniform(timing_info['noise_mean']-timing_info['noise_range
 ####################
 ###  START EXP   ###
 ####################
-
 # show block intro 
 while 'c' not in event.getKeys():
     et.drawFlip(win,[startExp])          
@@ -239,7 +234,6 @@ for block_no in range(n_blocks):
         ##########################
         ###  FIXATION PHASE    ###
         ##########################   
-
         t0 = core.getTime()
         # make sure the response of the previous trial has stopped
         while captureResponse(port,keys=resp_keys+[None]) in resp_keys:
@@ -357,7 +351,7 @@ for block_no in range(n_blocks):
     data_logger.write2File()
 
 # end of experiment message
-if trial_info['sess_id'] == 'prac': 
+if trial_info['ses_id'] == 'prac': 
     if performance>75:
         endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
     else:

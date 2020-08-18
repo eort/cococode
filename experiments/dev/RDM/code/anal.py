@@ -28,15 +28,15 @@ def runAnal(datFolder):
     ###   AGGREGATE  ####
     #####################
     # ACC and RT over unsigned coherence
-    firstlvl= allDat.groupby(['sub_id','sess_id','cur_coherence'])['correct','resp_time'].mean().reset_index() # time between successive switches
+    firstlvl= allDat.groupby(['sub_id','ses_id','cur_coherence'])['correct','resp_time'].mean().reset_index() # time between successive switches
     secondlvl= firstlvl.groupby(['sub_id','cur_coherence'])['correct','resp_time'].mean().reset_index() # time between successive switches
     thirdlvl= secondlvl.groupby(['cur_coherence'])['correct','resp_time'].mean().reset_index() 
 
     # ACC and RT over signed coherence
     f  = lambda x: x[x.str.contains('right')].count() / x.count()
-    firstlvl_pf= allDat.groupby(['sub_id','sess_id','dirCoh'])['resp_key'].apply(f).reset_index() 
+    firstlvl_pf= allDat.groupby(['sub_id','ses_id','dirCoh'])['resp_key'].apply(f).reset_index() 
     # compute mean response time
-    firstlvl_rt= allDat.groupby(['sub_id','sess_id','dirCoh'])['resp_time'].mean().reset_index() 
+    firstlvl_rt= allDat.groupby(['sub_id','ses_id','dirCoh'])['resp_time'].mean().reset_index() 
     # combine the two data frames
     firstlvl_pf['resp_time'] = firstlvl_rt['resp_time']
     secondlvl_pf= firstlvl_pf.groupby(['sub_id','dirCoh'])['resp_key','resp_time'].mean().reset_index() 
