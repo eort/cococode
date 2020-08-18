@@ -2,7 +2,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os,sys,glob,json
-from IPython import embed as shell
 
 def localAverage(series,window=5):
     new_s =  pd.Series(pd.np.nan, index=series.index,name='mov_avg')
@@ -68,38 +67,38 @@ def runAnal(datFolder):
     allDat['ev_correct'] = (allDat['ev_correct_resp'] == allDat['resp_key']).astype(int)
     allDat['mags'] = list(zip(allDat.mag_left,allDat.mag_right))
 
-        """
-        allDat['high_likely_color'] = allDat.block_no.replace({3:1,4:2,5:1,6:2,7:1,8:2})
-        #
-        allDat['color_left'] = 1
-        allDat['color_left'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==2)]= 2
-        allDat['color_left'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==1)]= 2
-        #
-        allDat['color_right'] = 1
-        allDat['color_right'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==1)]= 2
-        allDat['color_right'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==2)]= 2
+    """
+    allDat['high_likely_color'] = allDat.block_no.replace({3:1,4:2,5:1,6:2,7:1,8:2})
+    #
+    allDat['color_left'] = 1
+    allDat['color_left'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==2)]= 2
+    allDat['color_left'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==1)]= 2
+    #
+    allDat['color_right'] = 1
+    allDat['color_right'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==1)]= 2
+    allDat['color_right'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==2)]= 2
 
-        allDat['choice'] = allDat['high_likely_color']
-        allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==1)] = 2
-        allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==2)] = 1
+    allDat['choice'] = allDat['high_likely_color']
+    allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==1)] = 2
+    allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==2)] = 1
 
-        allDat['reward_side'] = allDat['high_likely_color']
-        allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==1)] = 2
-        allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==2)] = 1
+    allDat['reward_side'] = allDat['high_likely_color']
+    allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==1)] = 2
+    allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==2)] = 1
 
 
-        allDat['mag_1'] = allDat['mag_left']
-        allDat['mag_1'].loc[(allDat['color_left']==2)] = allDat['mag_right'].loc[(allDat['color_left']==2)] 
+    allDat['mag_1'] = allDat['mag_left']
+    allDat['mag_1'].loc[(allDat['color_left']==2)] = allDat['mag_right'].loc[(allDat['color_left']==2)] 
 
-        allDat['mag_2'] = allDat['mag_left']
-        allDat['mag_2'].loc[(allDat['color_left']==1)] = allDat['mag_right'].loc[(allDat['color_left']==1)] 
+    allDat['mag_2'] = allDat['mag_left']
+    allDat['mag_2'].loc[(allDat['color_left']==1)] = allDat['mag_right'].loc[(allDat['color_left']==1)] 
 
-        columns = ['high_likely_color','color_left','color_right','choice','reward_side','mag_1','mag_2','sub_id','trial_no']
-        subset = allDat[columns]
+    columns = ['high_likely_color','color_left','color_right','choice','reward_side','mag_1','mag_2','sub_id','trial_no']
+    subset = allDat[columns]
 
-        import scipy.io as sio
-        sio.savemat('ml.mat', {'struct1':subset.to_dict("list")})
-"""
+    import scipy.io as sio
+    sio.savemat('ml.mat', {'struct1':subset.to_dict("list")})
+    """
     # filter
     cleanDat = allDat.loc[allDat['timeout']==0]
     cleanDat['mov_avg']= cleanDat.groupby(['sub_id'])['correct'].apply(localAverage)
@@ -110,7 +109,7 @@ def runAnal(datFolder):
     #pd.crosstab(allDat.mags, allDat.high_prob_side)
     # aggregate data for sub stats
     #shell()
-    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['correct','resp_time'].mean().reset_index()
+    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['correct','resp_time'].mean().reset_index()
     secondlvl_acc= cleanDat.groupby(['sub_id'])['correct','resp_time'].mean().reset_index()
     thirdlvl_acc= secondlvl_acc['correct','resp_time'].mean().reset_index()
     # plot
@@ -123,7 +122,7 @@ def runAnal(datFolder):
     cleanDat['avg']= 'ev_mov_avg'
     outpath= outpath.replace('2020','2021')
     # aggregate data for sub stats
-    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['ev_correct','resp_time'].mean().reset_index()
+    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['ev_correct','resp_time'].mean().reset_index()
     secondlvl_acc= cleanDat.groupby(['sub_id'])['ev_correct','resp_time'].mean().reset_index()
     # plot
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
@@ -133,7 +132,7 @@ def runAnal(datFolder):
     outpath= outpath.replace('2021','2022')
     cleanDat['avg']= 'mag_mov_avg'
     # aggregate data for sub stats
-    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['mag_correct','resp_time'].mean().reset_index()
+    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['mag_correct','resp_time'].mean().reset_index()
     secondlvl_acc= cleanDat.groupby(['sub_id'])['mag_correct','resp_time'].mean().reset_index()
     # plot
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 

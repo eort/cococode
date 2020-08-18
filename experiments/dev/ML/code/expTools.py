@@ -1,4 +1,4 @@
-from psychopy import visual,event,core,logging
+from psychopy import visual,event,core
 import pandas as pd
 import os
 import random
@@ -10,15 +10,6 @@ def drawFlip(win, stim):
     drawCompositeStim(stim)
     timestamp = win.flip()
     return timestamp
-
-def prepDirectories():
-    """
-    make folders that are expected to exist
-    """
-    dirs = ['log','dat','settings']
-    for arg in dirs:
-        if not os.path.exists(arg):
-              os.makedirs(arg)   
 
 def captureResponseMEG(port=None, keys = ['m',None]):
     """
@@ -69,9 +60,7 @@ def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
     window.close()
     dataLogger.write2File(sort=sort)
     if show_results:
-        import anal,checkTimings
-        anal.runAnal(dataLogger.outpath)
-        checkTimings.run('log'+dataLogger.outpath[3:-3]+'log')
+        os.system('python code/{}_anal.py {}'.format(dataLogger.data['name'].loc[0],dataLogger.outpath))    
     core.quit()
 
 def sendTriggers(port,trigger,reset=0,prePad=0):
@@ -81,11 +70,9 @@ def sendTriggers(port,trigger,reset=0,prePad=0):
     if port!=None:
         core.wait(prePad)
         port.setData(trigger)
-        #os.system("/usr/local/bin/parashell 0x378 {}".format(trigger))
         if reset:
             core.wait(reset)
             port.setData(0)
-            #os.system("/usr/local/bin/parashell 0x378 0")
 
 class Logger(object):
     """
@@ -96,10 +83,6 @@ class Logger(object):
         self.columns = nameDict.keys()
         self.outpath= outpath
         self.outdir= os.path.dirname(outpath)
-
-        if len(self.columns)!=len(set(self.columns)):
-            logging.warn("There are duplicate file names in the logfile!")
-
         self.data = pd.DataFrame(columns=self.columns)
         self.defaultTrial = nameDict
         self.curRowIdx = 0

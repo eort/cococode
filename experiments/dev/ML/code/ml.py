@@ -20,13 +20,13 @@ import itertools as it                                          # doing some com
 try:
     jsonfile = sys.argv[1]
 except IndexError as e:
-    print("No config file provided. Stop it here.")
+    logging.error("No config file provided. Stop it here.")
     sys.exit(-1)
 try:
     with open(jsonfile) as f:    
         param = json.load(f)
 except FileNotFoundError as e:
-    print("{} is not a valid config file. Stop it here.".format(jsonfile))
+    logging.error("{} is not a valid config file. Stop it here.".format(jsonfile))
     sys.exit(-1)
 
 ###########################################
@@ -39,29 +39,24 @@ response_info=param['response_info']              # information on response coll
 reward_info=param['reward_info']                  # Information on the reward schedule
 logging_info=param['logging_info']                # information on files and variables for logging
 trigger_info = param['trigger_info']              # information on all the MEG trigger values and names
-n_blocks = param['n_blocks']                      # number total blocks
-sess_type = param['sess_type']                    # are we practicing or not
 bar = stim_info['progress_bar']                   # make drawing the progressbar less of a pain
 
 ###########################################
 ###         HANDLE INPUT DIALOG        ####
 ###########################################
 # dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
-inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
-# check  input
-if inputGUI.OK == False:
-    print("Experiment aborted by user")
-    core.quit()
-while input_dict['sess_id'] not in [1,2,3]:
-    print('WARNING: You need to specify a session number (1,2,3)')
+input_dict = dict(sub_id=0,ses_id=param['ses_id'])
+inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','ses_id'],show=False)
+while True:
     inputGUI.show()
     if inputGUI.OK == False:
-        print("Experiment aborted by user")
+        logging.warning("Experiment aborted by user")
         core.quit()
-# check whether settings match config file
-if sess_type!=input_dict['sess_type']:
-    logging.warning('Specified session type does not fit config file. This might cause issues further down the stream...')
+    if  input_dict['ses_id'] in ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)] +['scr','prac','pilot','intake']:
+        break
+    else:
+        logging.warning('WARNING: {} is not a valid ses_id'.format(input_dict['ses_id']))
+
 # check whether settings match config file
 if reward_info['rep_block']*reward_info['high_prob']!=int(reward_info['rep_block']*reward_info['high_prob']):
     logging.warning('Current reward settings do not allow proper counterbalancing: Adjust the reward probabilities or the size of the building blocks.')
@@ -83,12 +78,12 @@ if response_info['run_mode'] == 'dummy':
    captureResponse = et.captureResponseDummy
 
 # prepare the logfile (general log file, not data log file!) and directories
-logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
-log_file = os.path.join('log',param['exp_id'],logFileID+'.log')
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['ses_id'],'log')
 # create a output file that collects all variables 
-output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
+output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['ses_id'],'beh')
 # save the current settings per session, so that the data files stay slim
-settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
+settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(input_dict['sub_id'],input_dict['ses_id'],'settings')
 for f in [settings_file,output_file,log_file]:
     if not os.path.exists(os.path.dirname(f)): 
         os.makedirs(os.path.dirname(f))
@@ -97,8 +92,7 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
-                "sess_id":input_dict['sess_id'],
-                "sess_type":input_dict['sess_type'],
+                "ses_id":input_dict['ses_id'],
                 'total_points':0,
                 'block_no':0,
                 'pause_no':0,
@@ -117,21 +111,17 @@ resp_keys = [response_info['resp_left'],response_info['resp_right']]
 # load predefined RGB codes
 rgb_dict = stim_info['stim_colors']
 
-# select colors from predefined options based on sub id
-if trial_info['sess_type']=='meg':
-    if trial_info['proj_id']=='lorasick':
-        color_idx=[(0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0)][trial_info['sub_id']%6]
-    elif trial_info['proj_id']=='bip':
-        color_idx=[(0,1),(1,0)][trial_info['sub_id']%2]
-    else:
-        logging.warning('WARNING: The proj ID is unknown. Unclear for how many sessions colors need to be counterbalanced.')
-    colors = stim_info['color_combinations'][color_idx[trial_info['sess_id']-1]]
+# select colors from predefined options based on sub id and sess id, separately for screening and real sessions
+perms = list(it.permutations(range(param['n_ses'])))
+if trial_info['ses_id'] not in range(1,param['n_ses']+1):
+    color_idx = 0
 else:
-    colors = stim_info['color_combinations'][0]
+    color_idx=perms[trial_info['sub_id']%len(perms)][trial_info['ses_id']-1]
+colors = stim_info['color_combinations'][color_idx]
 np.random.shuffle(colors)
 
 # counterbalance the order of volatile and stable blocks across subs and sessions (make sure that balancing is orthogonal to color counterbalancing)
-block_type_order = ['sv','vs'][trial_info['sub_id']%6<2] # (v)olatile, (s)table
+block_type_order = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
 np.random.shuffle(param['volatile_blocks'])
 if block_type_order == 'sv':
     block_types = ['stable']+['volatile']*round(len(param['volatile_blocks']))
@@ -166,8 +156,9 @@ trial_seq = np.array(trial_seq)
 magn_seq = np.array(magn_seq)
 # when will there be pauses in the experiment?
 pause_seq = np.arange(0,trial_seq.shape[0],param['pause_interval'])
-# alternating between target colors across blocks
-color_seq = [colors, colors[::-1]]*round(len(block_types)/2)
+
+# alternating between target colors across blocks (if uneven number of blocks, round up, and drop extra blocks implicitly)
+color_seq = [colors, colors[::-1]]*np.ceil(len(block_types)/2).astype(int)
 # define sequence when a block switch should occur
 change_seq = np.cumsum(pd.Series(blocks).shift())
 change_seq[0] = 0
@@ -198,6 +189,7 @@ mon.setSizePix(win_info['win_size'])
 win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscr'],units="deg",autoLog=0,monitor=mon)
 
 # and text stuff
+startExp = visual.TextStim(win,text='Mixed learning task',color=win_info['fg_color'],height=0.35,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.35,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
@@ -214,8 +206,8 @@ rightbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edg
 selectbox = visual.Rect(win,width=stim_info['box_edge']*1.25,height=stim_info['box_edge']*1.25,lineColor=win_info['fg_color'],lineWidth=stim_info['line_width'],autoLog=0)
 leftMag = visual.TextStim(win,color=win_info['fg_color'],pos=[-stim_info['box_x'],0],height=0.5,autoLog=0)
 rightMag = visual.TextStim(win,color=win_info['fg_color'],pos = [stim_info['box_x'],0],height=0.5,autoLog=0)
-smiley = visual.ImageStim(win,'smiley.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
-frowny = visual.ImageStim(win,'frowny.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
+smiley = visual.ImageStim(win,'code/smiley.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
+frowny = visual.ImageStim(win,'code/frowny.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -231,10 +223,15 @@ select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,sele
 feedback_phase = [progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbox,leftbox,rightbox,leftMag,rightMag]
 timeout_phase = [progress_bar,progress_bar_start,progress_bar_end,timeout_screen]
 
+####################
+###  START EXP   ###
+####################
+while 'c' not in event.getKeys():
+    et.drawFlip(win,[startExp])          
+
 ######################
 ###  START TRIALS  ###
 ######################
-
 for trial_no in range(trial_seq.shape[0]):
     # set Block variables every time a context change occurred
     if trial_no in change_seq.values:
@@ -246,9 +243,11 @@ for trial_no in range(trial_seq.shape[0]):
 
     # start block message  
     if trial_no in pause_seq:
+        event.clearEvents()
         # reset block variables
+        block_correct = 0
         trial_info['pause_no'] += 1     
-        startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'],pause_seq.shape[0]+1)
+        startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'],pause_seq.shape[0])
         while True:
             et.drawFlip(win,[startBlock])                       
             cont=captureResponse(port,keys = [response_info['pause_resp'],None])    
@@ -261,8 +260,7 @@ for trial_no in range(trial_seq.shape[0]):
                 break
 
     # force quite experiment
-    escape = event.getKeys()
-    if 'q' in escape:
+    if 'q' in event.getKeys():
         et.finishExperiment(win,data_logger)
 
     # reset/ set trial variables
@@ -283,12 +281,12 @@ for trial_no in range(trial_seq.shape[0]):
         rightbox.fillColor = rgb_dict[trial_info['high_prob_color']]
         leftbox.fillColor = rgb_dict[trial_info['low_prob_color']]
         trial_info['color_left'] = trial_info['high_prob_color']
-        trial_info['color_right'] = mtrial_info['low_prob_color']        
+        trial_info['color_right'] = trial_info['low_prob_color']        
     else:
         rightbox.fillColor = rgb_dict[trial_info['low_prob_color']]
         leftbox.fillColor = rgb_dict[trial_info['high_prob_color']]
         trial_info['color_left'] = trial_info['low_prob_color']
-        trial_info['color_right'] = mtrial_info['high_prob_color'] 
+        trial_info['color_right'] = trial_info['high_prob_color'] 
 
     leftMag.text ='{:d}'.format(int(trial_info['mag_left']))
     rightMag.text ='{:d}'.format(int(trial_info['mag_right']))
@@ -344,6 +342,7 @@ for trial_no in range(trial_seq.shape[0]):
     trial_info['resp_time'] = core.getTime()-trial_info['start_stim_time']
     trial_info['resp_key'] = response
     trial_info['correct'] = int(response==trial_info['corr_resp'])
+    block_correct += trial_info['correct']
     if trial_info['correct']:
         trial_info['choice'] = trial_info['high_prob_color']
     # set the location of selection box
@@ -425,13 +424,20 @@ for trial_no in range(trial_seq.shape[0]):
         win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['pause_no']))    
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
-    # clear any pending key presses
-    event.clearEvents()
 
+    # save data of a block to file (behavior is updated after every block)
+    data_logger.write2File()
 # end of experiment message
-endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
-while et.captureResponseKB(port,keys = ['q']) != 'q':
-    et.drawFlip(win,[endExp])
+performance = int(100*block_correct/trial_info['trial_no'])   
+if trial_info['ses_id'] == 'prac': 
+    if performance>60:
+        endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
+    else:
+        endExp.text = endExp.text.format(str(performance)+'% korrekt. Das geht besser.','Bitte wiederhole die Übung.')
+else:
+    endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
+while 'q' not in event.getKeys():
+    et.drawFlip(win,[endExp])    
 
 # clean up
 et.finishExperiment(win,data_logger,show_results=True)  

@@ -53,7 +53,7 @@ while True:
     if inputGUI.OK == False:
         logging.warning("Experiment aborted by user")
         core.quit()
-    if  input_dict['ses_id'] in ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)] +['scr','prac','pilot']:
+    if  input_dict['ses_id'] in ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)] +['scr','prac','pilot','intake']:
         break
     else:
         logging.warning('WARNING: {} is not a valid ses_id'.format(input_dict['ses_id']))
@@ -117,7 +117,7 @@ win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=w
 event.Mouse(win=None,visible=False)
 event.clearEvents()
 # first all kind of structural messages
-startExp = visual.TextStim(win,text='Random Dot Motion Task',color=win_info['fg_color'],height=0.4,autoLog=0)
+startExp = visual.TextStim(win,text='Random dot motion task',color=win_info['fg_color'],height=0.4,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.4,autoLog=0)
@@ -208,8 +208,7 @@ for block_no in range(n_blocks):
     ##########################
     for trial_no in range(n_trials):
         # force quite experiment
-        escape = event.getKeys()
-        if 'q' in escape:
+        if 'q' in event.getKeys():
             et.finishExperiment(win,data_logger)
 
         # set/reset trial variables

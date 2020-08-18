@@ -32,7 +32,7 @@ def runAnal(datFolder):
     allDat.correct = allDat.correct.astype(int)
 
     # aggregate data for sub stats
-    firstlvl_acc= allDat.groupby(['sub_id','sess_id'])['correct','resp_time'].mean().reset_index()
+    firstlvl_acc= allDat.groupby(['sub_id','ses_id'])['correct','resp_time'].mean().reset_index()
     secondlvl_acc= allDat.groupby(['sub_id'])['correct','resp_time'].mean().reset_index()
 
     # plot

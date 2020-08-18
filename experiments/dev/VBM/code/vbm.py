@@ -19,13 +19,13 @@ import parallel                                                 # communication 
 try:
     jsonfile = sys.argv[1]
 except IndexError as e:
-    print("No config file provided. Stop it here.")
+    logging.warning("No config file provided. Stop it here.")
     sys.exit(-1)
 try:
     with open(jsonfile) as f:    
         param = json.load(f)
 except FileNotFoundError as e:
-    print("{} is not a valid config file. Stop it here.".format(jsonfile))
+    logging.warning("{} is not a valid config file. Stop it here.".format(jsonfile))
     sys.exit(-1)
 
 ###########################################
@@ -39,30 +39,23 @@ logging_info=param['logging_info']                # information on files and var
 trigger_info = param['trigger_info']              # information on all the MEG trigger values and names
 n_trials = param['n_trials']                      # number trials per block
 n_blocks = param['n_blocks']                      # number total blocks
-sess_type = param['sess_type']                    # are we practicing or not
 bar = stim_info['progress_bar']                   # trigger for defined events
 
 ###########################################
 ###         HANDLE INPUT DIALOG        ####
 ###########################################
-# dialog with participants: Retrieve Subject number, session number, and practice
-input_dict = dict(sub_id=0,sess_id=0,sess_type=sess_type)
-inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','sess_id','sess_type'])
-# check for input
-if inputGUI.OK == False:
-    print("Experiment aborted by user")
-    core.quit()
-while input_dict['sess_id'] not in [1,2,3]:
-    print('WARNING: You need to specify a session number (1,2,3)')
+# dialog with participants: Retrieve Subject number, session number
+input_dict = dict(sub_id=0,ses_id=param['ses_id'])
+inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','ses_id'],show=False)
+while True:
     inputGUI.show()
     if inputGUI.OK == False:
-        print("Experiment aborted by user")
+        logging.warning("Experiment aborted by user")
         core.quit()
-
-# check whether settings match config file
-if sess_type!=input_dict['sess_type']:
-    print('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
-    logging.warning('WARNING: specified session type does not fit config file. This might cause issues further down the stream...')
+    if  input_dict['ses_id'] in ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)] +['scr','prac','pilot','intake']:
+        break
+    else:
+        logging.warning('WARNING: {} is not a valid ses_id'.format(input_dict['ses_id']))
 
 ###########################################
 ###           SET UP OVERHEAD          ####
@@ -78,13 +71,12 @@ if response_info['run_mode'] == 'dummy':
    captureResponse = et.captureResponseDummy
 
 # prepare the logfile (general log file, not data log file!) and directories
-logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['sess_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
-log_file = os.path.join('log',param['exp_id'],logFileID+'.log')
-
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['ses_id'],'log')
 # create a output file that collects all variables 
-output_file = os.path.join('dat',param['exp_id'],logFileID+'.csv')
+output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['ses_id'],'beh')
 # save the current settings per session, so that the data files stay slim
-settings_file = os.path.join('settings',param['exp_id'],logFileID+'.json')
+settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(input_dict['sub_id'],input_dict['ses_id'],'settings')
 for f in [log_file,output_file,settings_file]:
     if not os.path.exists(os.path.dirname(f)): 
         os.makedirs(os.path.dirname(f))
@@ -93,8 +85,7 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
-                "sess_id":input_dict['sess_id'],
-                "sess_type":input_dict['sess_type'],
+                "ses_id":input_dict['ses_id'],
                 'total_points':0,
                 'trial_count':0,
                 'logFileID':logFileID}
@@ -108,8 +99,8 @@ for vari in logging_info['logVars']:
 
 # load sequence info
 sequence = pd.read_csv(param['sequence'])
-sequence.prob1 = 100*sequence.prob1
-sequence.prob2 = 100*sequence.prob2
+sequence.prob1 = 10*sequence.prob1
+sequence.prob2 = 10*sequence.prob2
 # shuffle
 sequence = sequence.sample(frac=1).reset_index(drop=True)
 # response
@@ -136,6 +127,7 @@ mon.setSizePix(win_info['win_size'])
 win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscr'],units="deg",autoLog=0,monitor=mon)
 
 # and text stuff
+startExp = visual.TextStim(win,text='Value-based decision making task',color=win_info['fg_color'],height=0.35,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.35,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
@@ -168,12 +160,18 @@ stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftf
 select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbar,rightframe,leftframe,leftbar,rightbar,leftProb,rightProb]
 feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbar,rightframe,leftframe,leftbar,rightbar,leftProb,rightProb]
 
+####################
+###  START EXP   ###
+####################
+while 'c' not in event.getKeys():
+    et.drawFlip(win,[startExp])          
+
 ######################
 ###  START BLOCKS  ###
 ######################
 for block_no in range(n_blocks):
     trial_info['block_no']=block_no+1
-    
+    block_correct = 0
     # start block message
     startBlock.text = stim_info["startBlock_text"].format(block_no+1, n_blocks)
     while True:
@@ -192,8 +190,7 @@ for block_no in range(n_blocks):
     ####################
     for trial_no in range(n_trials):
         # force quite experiment
-        escape = event.getKeys()
-        if 'q' in escape:
+        if 'q' in event.getKeys():
             et.finishExperiment(win,data_logger)
 
         # reset variables
@@ -221,14 +218,13 @@ for block_no in range(n_blocks):
         trial_info['trial_count']+=1
         fix_frames = fix_frames_seq[block_no,trial_no]
         select_frames = select_frames_seq[block_no,trial_no]
-
         # set stimulus
-        leftbar.height = 0.1*stim_info['bar_height']*trial_info['mag_left']
-        leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
-        rightbar.height =0.1*stim_info['bar_height']* trial_info['mag_right']
-        rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
-        leftProb.text =  '{:02d}%'.format(int(trial_info['prob_left']))
-        rightProb.text = '{:02d}%'.format(int(trial_info['prob_right']))
+        leftbar.height = 0.1*stim_info['bar_height']*trial_info['prob_left']
+        leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['prob_left']]
+        rightbar.height =0.1*stim_info['bar_height']* trial_info['prob_right']
+        rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['prob_right']]
+        leftProb.text =  '{:d}'.format(int(trial_info['mag_left']))
+        rightProb.text = '{:d}'.format(int(trial_info['mag_right']))
 
         # check whether a button in the response box is currently pressed & present a warning if so
         t0 = core.getTime()
@@ -285,7 +281,8 @@ for block_no in range(n_blocks):
         trial_info['resp_time'] = core.getTime()-trial_info['start_stim_time']
         trial_info['resp_key'] = response
         trial_info['correct'] = int(response==trial_info['corr_resp'])
-        
+        block_correct += trial_info['correct']
+
         # define incremental reward value and define selection box
         if trial_info['resp_key'] == resp_keys[0]:
             selectbar.pos = [-stim_info['bar_x'],stim_info['bar_y']-0.2*stim_info['bar_height']]
@@ -349,7 +346,9 @@ for block_no in range(n_blocks):
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
         data_logger.writeTrial(trial_info)
 
-    # end of block message
+    # save data of a block to file (behavior is updated after every block)
+    data_logger.write2File()
+    # end of block message 
     if trial_info['block_no'] !=n_blocks:
         endBlock.text = stim_info["endBlock_text"].format(block_no+1,trial_info['total_points'])
         win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))  
@@ -360,9 +359,16 @@ for block_no in range(n_blocks):
     event.clearEvents()
 
 # end of experiment message
-endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
-while et.captureResponseKB(port,keys = ['q']) != 'q':
-    et.drawFlip(win,[endExp])
+performance = int(100*block_correct/n_trials)   
+if trial_info['ses_id'] == 'prac': 
+    if performance>60:
+        endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
+    else:
+        endExp.text = endExp.text.format(str(performance)+'% korrekt. Das geht besser.','Bitte wiederhole die Übung.')
+else:
+    endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
+while 'q' not in event.getKeys():
+    et.drawFlip(win,[endExp])    
 
 #cleanup
 et.finishExperiment(win,data_logger,show_results=logging_info['show_results'])
