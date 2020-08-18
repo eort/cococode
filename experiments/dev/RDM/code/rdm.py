@@ -39,6 +39,7 @@ logging_info=param['logging_info']                # information on files and var
 trigger_info = param['trigger_info']              # information on all the MEG trigger values and names
 n_trials = param['n_trials']                      # number trials per block
 n_blocks = param['n_blocks']                      # number total blocks
+coherence_lvls = param['coherence_lvl']           # coherence levels
 rdk = stim_info['cloud_specs']                    # info on RDK
 
 ###########################################
@@ -52,8 +53,8 @@ inputGUI =gui.DlgFromDict(input_dict,title='Experiment Info',order=['sub_id','se
 if inputGUI.OK == False:
     logging.warning("Experiment aborted by user")
     core.quit()
-while input_dict['sess_id'] not in list(range(1,param['n_sess']+1))+['scr','prac']:
-    logging.warning('WARNING: You need to specify a session number in the range {}'.format(list(range(1,param['n_sess']+1))))
+while input_dict['sess_id'] not in list(range(1,param['n_ses']+1))+['scr','prac']:
+    logging.warning('WARNING: You need to specify a session number in the range {}'.format(list(range(1,param['n_ses']+1))))
     inputGUI.show()
     if inputGUI.OK == False:
         logging.warning("Experiment aborted by user")
@@ -82,7 +83,6 @@ settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(
 # save dot positions for each dot on each frame, trial and block
 position_file = os.path.join(os.path.join('sub-{:02d}','ses-{}','{}').format(input_dict['sub_id'],input_dict['sess_id'],'dot_xy'),logFileID+'_block-{}.pkl')
 
-
 for f in [log_file,position_file,settings_file,output_file]:
     if not os.path.exists(os.path.dirname(f)): 
         os.makedirs(os.path.dirname(f))
@@ -102,11 +102,6 @@ for vari in logging_info['logVars']:
 ###  PREPARE EXPERIMENTAL SEQUENCE     ####
 ###########################################
 
-# prepare coherence levels of dots
-if trial_info['sess_id'] != 'prac':
-    coherence_lvls = param['coherence_lvl']  
-else:
-    coherence_lvls = [0.3+coh for coh in param['coherence_lvl']]
 n_cohs = len(coherence_lvls)
 n_dots = int(rdk['dotperdva']*0.5*rdk['cloud_size']**2*np.pi)
 
@@ -126,6 +121,7 @@ win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=w
 event.Mouse(win=None,visible=False)
 event.clearEvents()
 # first all kind of structural messages
+startExp = visual.TextStim(win,text='Random Dot Motion Task',color=win_info['fg_color'],height=0.4,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.4,autoLog=0)
@@ -133,7 +129,7 @@ warning = visual.TextStim(win,text=stim_info["warning"],color=win_info['fg_color
 feedback = visual.TextStim(win,text='',color=win_info['fg_color'],height=0.4,autoLog=0)
 fixDot = et.fancyFixDot(win,fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=0.4) 
 cloud=visual.DotStim(win,color=win_info['fg_color'],fieldSize=rdk['cloud_size'],nDots=n_dots,dotLife=rdk['dotLife'],dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape='circle',coherence=0)
-middle = visual.Circle(win, size=2, pos=[0,0],lineColor=None,fillColor=win_info['bg_color'],autoLog=0)
+middle = visual.Circle(win, size=rdk['annulus'], pos=[0,0],lineColor=None,fillColor=win_info['bg_color'],autoLog=0)
 # reset all triggers to zero
 et.sendTriggers(port,0)
 
@@ -144,6 +140,14 @@ pause_frames = round(timing_info['pause_dur']*win_info['framerate'])
 feed_frames = round(timing_info['feed_dur']*win_info['framerate'])
 fix_frames = round(timing_info['fix_dur']*win_info['framerate'])
 noise_seq = np.random.uniform(timing_info['noise_mean']-timing_info['noise_range'],timing_info['noise_mean']+timing_info['noise_range'], size=(n_blocks,n_trials+param['n_zero']))
+
+####################
+###  START EXP   ###
+####################
+
+# show block intro 
+while 'c' not in event.getKeys():
+    et.drawFlip(win,[startExp])          
 
 ###########################
 ###  START BLOCK LOOP # ###
@@ -235,6 +239,13 @@ for block_no in range(n_blocks):
         ##########################
         ###  FIXATION PHASE    ###
         ##########################   
+
+        t0 = core.getTime()
+        # make sure the response of the previous trial has stopped
+        while captureResponse(port,keys=resp_keys+[None]) in resp_keys:
+            if core.getTime()-t0>1.0: 
+                et.drawFlip(win,[warning])  
+
         # start trial and draw fixation and wait for 
         win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_count'],timing_info['fix_dur']+0.008))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_fix'])  
@@ -265,12 +276,14 @@ for block_no in range(n_blocks):
                 elif frame==noise_frames:
                     cloud.coherence = trial_info['cur_coherence']
                     win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_info['trial_count']))
-                    win.callOnFlip(et.sendTriggers,port,trial_info['cur_trigger'])
+                    win.callOnFlip(et.sendTriggers,port,trigger_info[trial_info['cur_trigger']])
                     win.timeOnFlip(stimTime,'onset')
                 elif frame==noise_frames+5:
                     win.callOnFlip(et.sendTriggers,port,0)     
-                #et.drawCompositeStim([cloud,middle]+fixDot)
-                et.drawCompositeStim([cloud]+fixDot)
+                if rdk['annulus']>0:
+                    et.drawCompositeStim([cloud,middle]+fixDot)
+                else:
+                    et.drawCompositeStim([cloud]+fixDot)
             else:               
                 et.drawCompositeStim(fixDot)
             win.logOnFlip(level=logging.INFO, msg='stim_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
@@ -332,18 +345,25 @@ for block_no in range(n_blocks):
         all_positions.loc[trial_info['trial_no'],'positions'] = dot_positions
 
     # show end of block text
+    performance = int(100*trial_info['total_correct']/n_trials)
     if trial_info['block_no'] != n_blocks:
-        endBlock.text = stim_info["blockEnd"].format(block_no+1,int(100*trial_info['total_correct']/n_trials))
+        endBlock.text = stim_info["blockEnd"].format(block_no+1,performance)
         win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
     event.clearEvents()
-
+    # save data of a block to file (behavior is updated, dot positions writes a file per block)
     all_positions.to_pickle(position_file.format(trial_info['block_no']))
+    data_logger.write2File()
+
 # end of experiment message
-while et.captureResponseKB(port,keys = ['q']) != 'q':
-    et.drawFlip(win,[endExp])
+if trial_info['sess_id'] == 'prac': 
+    if performance>75:
+        endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
+    else:
+        endExp.text = endExp.text.format(str(performance)+'% korrekt. Das geht besser.','Bitte wiederhole die Übung.')
+while 'q' not in event.getKeys():
+    et.drawFlip(win,[endExp])          
 
 #cleanup
-
 et.finishExperiment(win,data_logger,show_results=True)

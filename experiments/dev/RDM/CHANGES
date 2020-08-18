@@ -1,0 +1,9 @@
+2.5.1 2020-08-18
+    - start CHANGES log
+    - hard code coherence level for practice (0.7-0.9 in steps of 0.05)
+    - fix BUG with non-integer session input
+    - save data after every block
+    - minor changes to analysis script
+    - add a start experiment screen (minimal info), proceed by pressing "c"
+    - show performance at the end of experiment
+    - already give the go/nogo decision on the last screen)
