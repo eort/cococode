@@ -30,7 +30,7 @@
                      "resp_mode":"keyboard",
                      "run_mode":"sub"},
     "stim_info":{"cloud_specs":{"annulus":2.5,
-                                "cloud_size":8,
+                                "cloud_size":12,
                                 "dotperdva":1.7,
                                 "size_dots":5,
                                 "dotLife":4,

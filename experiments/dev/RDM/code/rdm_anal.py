@@ -7,10 +7,13 @@ import glob
 
 def runAnal(datFolder):
     if not os.path.isfile(datFolder):
-        inFiles = sorted(glob.glob(datFolder + '/*.csv'))
+        allFiles = sorted(glob.glob('../sub-*/ses-*/beh/' + datFolder + '.csv'))
+        inFiles=[]
+        for f in allFiles:
+            if os.stat(f).st_size>100000: inFiles.append(f) 
         pdList = [pd.read_csv(f) for f in inFiles]
         allDat = pd.concat(pdList, axis=0, ignore_index=True)
-        outpath=os.path.join(datFolder,'group_results.png')
+        outpath=os.path.join('group_results.png')
     else:
         allDat = pd.read_csv(datFolder)
         outpath= datFolder.replace('csv','png')
@@ -24,6 +27,7 @@ def runAnal(datFolder):
     allDat = allDat.dropna(subset=['resp_key'])
     allDat['resp_time'] = allDat['resp_time'] *1000
     allDat['correct'].loc[allDat['cur_coherence'] == 0.0] = 0.5 
+
     #####################
     ###   AGGREGATE  ####
     #####################

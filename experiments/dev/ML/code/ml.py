@@ -66,7 +66,6 @@ if sum([bl%(2*reward_info['rep_block']) for bl in param['volatile_blocks']])!=0:
 ###########################################
 ###           SET UP OVERHEAD          ####
 ###########################################
-
 # choose response functions
 if response_info['resp_mode'] == 'meg':
     captureResponse = et.captureResponseMEG
@@ -113,7 +112,7 @@ rgb_dict = stim_info['stim_colors']
 
 # select colors from predefined options based on sub id and sess id, separately for screening and real sessions
 perms = list(it.permutations(range(param['n_ses'])))
-if trial_info['ses_id'] not in range(1,param['n_ses']+1):
+if trial_info['ses_id'] not in  ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)]:
     color_idx = 0
 else:
     color_idx=perms[trial_info['sub_id']%len(perms)][trial_info['ses_id']-1]
