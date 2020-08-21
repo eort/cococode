@@ -99,8 +99,8 @@ for vari in logging_info['logVars']:
 
 # load sequence info
 sequence = pd.read_csv(param['sequence'])
-sequence.prob1 = 10*sequence.prob1
-sequence.prob2 = 10*sequence.prob2
+sequence.prob1 = 100*sequence.prob1
+sequence.prob2 = 100*sequence.prob2
 # shuffle
 sequence = sequence.sample(frac=1).reset_index(drop=True)
 # response
@@ -219,12 +219,12 @@ for block_no in range(n_blocks):
         fix_frames = fix_frames_seq[block_no,trial_no]
         select_frames = select_frames_seq[block_no,trial_no]
         # set stimulus
-        leftbar.height = 0.1*stim_info['bar_height']*trial_info['prob_left']
-        leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['prob_left']]
-        rightbar.height =0.1*stim_info['bar_height']* trial_info['prob_right']
-        rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['prob_right']]
-        leftProb.text =  '{:d}'.format(int(trial_info['mag_left']))
-        rightProb.text = '{:d}'.format(int(trial_info['mag_right']))
+        leftbar.height = 0.1*stim_info['bar_height']*trial_info['mag_left']
+        leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
+        rightbar.height =0.1*stim_info['bar_height']* trial_info['mag_right']
+        rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
+        leftProb.text =  '{:d}'.format(int(trial_info['prob_left']))
+        rightProb.text = '{:d}'.format(int(trial_info['prob_right']))
 
         # check whether a button in the response box is currently pressed & present a warning if so
         t0 = core.getTime()
