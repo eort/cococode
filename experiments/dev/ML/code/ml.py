@@ -130,6 +130,7 @@ else:
     blocks = param['volatile_blocks']+param['stable_blocks']
 
 # create building blocks of possible location/validity combinations 
+
 reward_ratio = np.array([1]*round(reward_info['high_prob']*reward_info['rep_block'])+[0]*round((1-reward_info['high_prob'])*reward_info['rep_block']))
 # extend this balanced ratio to location (left,right)
 # 0 unreward left, 1 rewarded left, 2 unrewarded right, rewarded right
@@ -163,7 +164,7 @@ change_seq = np.cumsum(pd.Series(blocks).shift())
 change_seq[0] = 0
 
 # 0,1 target is on left, 2,3 target is on right
-target_side_seq = [resp_keys[0] if i in [0,1] else resp_keys[1] for i in trial_seq]
+high_prob_side = [resp_keys[0] if i in [0,1] else resp_keys[1] for i in trial_seq]
 # 0, 2 the high likely target won't get reward, 1,3 the high likely target will get reward
 reward_validity_seq = ['valid' if i in [1,3] else 'invalid' for i in trial_seq]
 
@@ -188,7 +189,7 @@ mon.setSizePix(win_info['win_size'])
 win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscr'],units="deg",autoLog=0,monitor=mon)
 
 # and text stuff
-startExp = visual.TextStim(win,text='Mixed learning task',color=win_info['fg_color'],height=0.35,autoLog=0)
+startExp = visual.TextStim(win,text='Willkommen zur Lernaufgabe!\n Gleich geht es los.',color=win_info['fg_color'],height=0.35,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.35,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
@@ -200,13 +201,13 @@ progress_update =visual.Rect(win,height=bar['height'],width=0,lineColor=None,fil
 progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
 progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
 fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size=0.4) 
-leftbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=None,pos=[-stim_info['box_x'],stim_info['box_y']],autoLog=0)
-rightbox = visual.Rect(win,width=stim_info['box_edge'],height=stim_info['box_edge'],lineColor=None,pos=[stim_info['box_x'],stim_info['box_y']],autoLog=0)
-selectbox = visual.Rect(win,width=stim_info['box_edge']*1.25,height=stim_info['box_edge']*1.25,lineColor=win_info['fg_color'],lineWidth=stim_info['line_width'],autoLog=0)
-leftMag = visual.TextStim(win,color=win_info['fg_color'],pos=[-stim_info['box_x'],0],height=0.5,autoLog=0)
-rightMag = visual.TextStim(win,color=win_info['fg_color'],pos = [stim_info['box_x'],0],height=0.5,autoLog=0)
-smiley = visual.ImageStim(win,'code/smiley.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
-frowny = visual.ImageStim(win,'code/frowny.png',contrast=-1,size=[0.8*stim_info['box_edge'],0.8*stim_info['box_edge']],autoLog=0)
+leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],fillColor=None,pos=[-stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
+rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],fillColor=None,pos=[stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
+leftbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=None,autoLog=0)
+rightbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=None,autoLog=0)
+selectbar = visual.Rect(win,width=stim_info['bar_width']*1.7,height=stim_info['bar_height']*1.4,lineColor=win_info['fg_color'],fillColor=None,lineWidth=stim_info['line_width'],autoLog=0)
+smiley = visual.ImageStim(win,'code/smiley.png',contrast=-1,size=[0.9*stim_info['bar_width'],0.9*stim_info['bar_width']],autoLog=0)
+frowny = visual.ImageStim(win,'code/frowny.png',contrast=-1,size=[0.9*stim_info['bar_width'],0.9*stim_info['bar_width']],autoLog=0)
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -217,9 +218,9 @@ et.sendTriggers(port,0)
 
 # experimental phases (unique things on screen)
 fix_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end]
-stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftbox,rightbox,leftMag,rightMag]
-select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbox,leftbox,rightbox,leftMag,rightMag]
-feedback_phase = [progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbox,leftbox,rightbox,leftMag,rightMag]
+stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftframe,rightframe,leftbar,rightbar]
+select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbar,rightframe,leftframe,leftbar,rightbar]
+feedback_phase = [progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbar,rightframe,leftframe,leftbar,rightbar]
 timeout_phase = [progress_bar,progress_bar_start,progress_bar_end,timeout_screen]
 
 ####################
@@ -242,6 +243,8 @@ for trial_no in range(trial_seq.shape[0]):
 
     # start block message  
     if trial_no in pause_seq:
+        # save data of a block to file (behavior is updated after every block)
+        if trial_info['pause_no']>1: data_logger.write2File()
         event.clearEvents()
         # reset block variables
         block_correct = 0
@@ -262,33 +265,45 @@ for trial_no in range(trial_seq.shape[0]):
     if 'q' in event.getKeys():
         et.finishExperiment(win,data_logger)
 
-    # reset/ set trial variables
+    # reset/set trial variables
     response =None
+    leftbar.fillColor = win_info['bg_color']
+    rightbar.fillColor = win_info['bg_color']
     trial_info['reward'] = 0   
-    trial_info['corr_resp'] = target_side_seq[trial_no]
     trial_info['trial_no'] = trial_no+1
     trial_info['fix_dur'] = fix_seq[trial_no]
     trial_info['select_dur'] = select_seq[trial_no]
     trial_info['mag_left'] = magn_seq[trial_no][0]
     trial_info['mag_right'] = magn_seq[trial_no][1]
-    trial_info['high_prob_side'] = target_side_seq[trial_no]
+    trial_info['high_prob_side'] = high_prob_side[trial_no]
     trial_info['reward_validity'] = reward_validity_seq[trial_no]
     trial_info['choice'] = trial_info['low_prob_color']
 
     # set stimulus   
     if trial_info['high_prob_side'] == 'left':
-        rightbox.fillColor = rgb_dict[trial_info['high_prob_color']]
-        leftbox.fillColor = rgb_dict[trial_info['low_prob_color']]
+        rightbar.fillColor = rgb_dict[trial_info['low_prob_color']]
+        leftbar.fillColor = rgb_dict[trial_info['high_prob_color']]
+        rightframe.lineColor = rgb_dict[trial_info['low_prob_color']]
+        leftframe.lineColor = rgb_dict[trial_info['high_prob_color']]
         trial_info['color_left'] = trial_info['high_prob_color']
         trial_info['color_right'] = trial_info['low_prob_color']        
+        trial_info['ev_left'] = trial_info['mag_left'] * reward_info['high_prob']
+        trial_info['ev_right'] =trial_info['mag_right'] * (1-reward_info['high_prob'])
     else:
-        rightbox.fillColor = rgb_dict[trial_info['low_prob_color']]
-        leftbox.fillColor = rgb_dict[trial_info['high_prob_color']]
+        rightframe.lineColor = rgb_dict[trial_info['high_prob_color']]
+        leftframe.lineColor = rgb_dict[trial_info['low_prob_color']]
+        rightbar.fillColor = rgb_dict[trial_info['high_prob_color']]
+        leftbar.fillColor = rgb_dict[trial_info['low_prob_color']]
         trial_info['color_left'] = trial_info['low_prob_color']
         trial_info['color_right'] = trial_info['high_prob_color'] 
+        trial_info['ev_left'] = trial_info['mag_left'] * (1-reward_info['high_prob'])
+        trial_info['ev_right'] =trial_info['mag_right'] * reward_info['high_prob']
+    trial_info['corr_resp'] = resp_keys[trial_info['ev_left']<trial_info['ev_right']]
 
-    leftMag.text ='{:d}'.format(int(trial_info['mag_left']))
-    rightMag.text ='{:d}'.format(int(trial_info['mag_right']))
+    leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
+    leftbar.height=0.1*stim_info['bar_height']*trial_info['mag_left']
+    rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
+    rightbar.height=0.1*stim_info['bar_height']* trial_info['mag_right']
 
     # check whether a button in the response box is currently pressed & present a warning if so
     t0 = core.getTime()
@@ -346,9 +361,9 @@ for trial_no in range(trial_seq.shape[0]):
         trial_info['choice'] = trial_info['high_prob_color']
     # set the location of selection box
     if trial_info['resp_key'] == resp_keys[0]:
-        selectbox.pos = [-stim_info['box_x'],stim_info['box_y']]
+        selectbar.pos = [-stim_info['bar_x'],stim_info['bar_y']]
     elif trial_info['resp_key'] == resp_keys[1]:
-        selectbox.pos = [stim_info['box_x'],stim_info['box_y']]
+        selectbar.pos = [stim_info['bar_x'],stim_info['bar_y']]
     
     ##########################
     ###  SELECTION PHASE   ###
@@ -424,8 +439,6 @@ for trial_no in range(trial_seq.shape[0]):
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
 
-    # save data of a block to file (behavior is updated after every block)
-    data_logger.write2File()
 # end of experiment message
 performance = int(100*block_correct/trial_info['trial_no'])   
 if trial_info['ses_id'] == 'prac': 

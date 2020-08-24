@@ -127,7 +127,7 @@ mon.setSizePix(win_info['win_size'])
 win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscr'],units="deg",autoLog=0,monitor=mon)
 
 # and text stuff
-startExp = visual.TextStim(win,text='Value-based decision making task',color=win_info['fg_color'],height=0.35,autoLog=0)
+startExp = visual.TextStim(win,text='Willkommen zur Casinoaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.35,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.35,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
@@ -139,11 +139,11 @@ progress_update =visual.Rect(win,height=bar['height'],width=0,lineColor=None,fil
 progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
 progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
 fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color']) 
-leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=None,pos = [-stim_info['bar_x'],stim_info['bar_y']],autoLog=0)
-rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=None,pos = [stim_info['bar_x'],stim_info['bar_y']],autoLog=0)
+leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=None,pos = [-stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
+rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=None,pos = [stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
 leftbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=None,fillColor=win_info['fg_color'],autoLog=0)
 rightbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=None,fillColor=win_info['fg_color'],autoLog=0)
-selectbar = visual.Rect(win,width=stim_info['bar_width']*1.7,height=stim_info['bar_height']*1.7,lineColor=win_info['fg_color'],fillColor=None,autoLog=0)
+selectbar = visual.Rect(win,width=stim_info['bar_width']*1.7,height=stim_info['bar_height']*1.7,lineColor=win_info['fg_color'],fillColor=None,lineWidth=stim_info['line_width'],autoLog=0)
 leftProb = visual.TextStim(win,height=0.4,color=win_info['fg_color'],pos=[-stim_info['bar_x'],-0.8*stim_info['bar_height']+stim_info['bar_y']],autoLog=0)
 rightProb = visual.TextStim(win,height=0.4,color=win_info['fg_color'],pos=[stim_info['bar_x'],-0.8*stim_info['bar_height']+stim_info['bar_y']],autoLog=0)
 
@@ -213,8 +213,6 @@ for block_no in range(n_blocks):
         trial_info['rew_right'] = sequence.iloc[trial_info['trial_count']].fb2
         trial_info['ev_left'] = sequence.iloc[trial_info['trial_count']].ev1
         trial_info['ev_right'] = sequence.iloc[trial_info['trial_count']].ev2
-        trial_info['nb'] = sequence.iloc[trial_info['trial_count']]['Nb']
-        trial_info['corrSM'] = sequence.iloc[trial_info['trial_count']].CorrectLeftRight
         trial_info['trial_count']+=1
         fix_frames = fix_frames_seq[block_no,trial_no]
         select_frames = select_frames_seq[block_no,trial_no]
@@ -223,8 +221,8 @@ for block_no in range(n_blocks):
         leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
         rightbar.height =0.1*stim_info['bar_height']* trial_info['mag_right']
         rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
-        leftProb.text =  '{:d}'.format(int(trial_info['prob_left']))
-        rightProb.text = '{:d}'.format(int(trial_info['prob_right']))
+        leftProb.text =  '{:02d}%'.format(int(trial_info['prob_left']))
+        rightProb.text = '{:02d}%'.format(int(trial_info['prob_right']))
 
         # check whether a button in the response box is currently pressed & present a warning if so
         t0 = core.getTime()

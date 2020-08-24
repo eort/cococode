@@ -117,7 +117,7 @@ win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=w
 event.Mouse(win=None,visible=False)
 event.clearEvents()
 # first all kind of structural messages
-startExp = visual.TextStim(win,text='Random dot motion task',color=win_info['fg_color'],height=0.4,autoLog=0)
+startExp = visual.TextStim(win,text='Willkommen zur Weltallaufgabe!\n Gleich geht es los.',color=win_info['fg_color'],height=0.4,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.4,autoLog=0)
