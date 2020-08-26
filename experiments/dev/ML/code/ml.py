@@ -95,6 +95,7 @@ trial_info = {"sub_id":input_dict['sub_id'],
                 'total_points':0,
                 'block_no':0,
                 'pause_no':0,
+                'high_prob':reward_info['high_prob'],
                 'logFileID':logFileID}
 
 # add variables to the logfile that are defined in config file
@@ -118,7 +119,8 @@ else:
     color_idx=perms[trial_info['sub_id']%len(perms)][trial_info['ses_id']-1]
 colors = stim_info['color_combinations'][color_idx]
 np.random.shuffle(colors)
-
+trial_info['option1_color'] = colors[0]
+trial_info['option2_color'] = colors[1]
 # counterbalance the order of volatile and stable blocks across subs and sessions (make sure that balancing is orthogonal to color counterbalancing)
 block_type_order = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
 np.random.shuffle(param['volatile_blocks'])
@@ -278,7 +280,9 @@ for trial_no in range(trial_seq.shape[0]):
     trial_info['high_prob_side'] = high_prob_side[trial_no]
     trial_info['reward_validity'] = reward_validity_seq[trial_no]
     trial_info['choice'] = trial_info['low_prob_color']
-
+    trial_info['outcome']= 0
+    trial_info['option1_side'] = 'left'
+    trial_info['option2_side'] = 'left'
     # set stimulus   
     if trial_info['high_prob_side'] == 'left':
         rightbar.fillColor = rgb_dict[trial_info['low_prob_color']]
@@ -298,7 +302,25 @@ for trial_no in range(trial_seq.shape[0]):
         trial_info['color_right'] = trial_info['high_prob_color'] 
         trial_info['ev_left'] = trial_info['mag_left'] * (1-reward_info['high_prob'])
         trial_info['ev_right'] =trial_info['mag_right'] * reward_info['high_prob']
-    trial_info['corr_resp'] = resp_keys[trial_info['ev_left']<trial_info['ev_right']]
+    trial_info['corr_resp'] = resp_keys[int(trial_info['ev_left']<trial_info['ev_right'])]
+    # define option-based variables (regardless of side), useful for RL models/regressions
+    # where is option 1/2
+    if trial_info['color_left']==trial_info['option1_color']:
+        trial_info['option2_side'] = 'right'
+    else:
+        trial_info['option1_side'] = 'right'
+    # what is the outcome of option 1/2
+    if trial_info['high_prob_color']==trial_info['option1_color']:
+        if trial_info['reward_validity'] == 'valid':
+            trial_info['option1_outcome'] = 1
+        else:
+            trial_info['option1_outcome'] = 0
+    elif trial_info['low_prob_color']==trial_info['option1_color']:
+        if trial_info['reward_validity'] == 'valid':
+            trial_info['option1_outcome'] = 1
+        else:
+            trial_info['option1_outcome'] = 0
+    trial_info['option2_outcome'] = trial_info['option1_outcome']^1
 
     leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
     leftbar.height=0.1*stim_info['bar_height']*trial_info['mag_left']
@@ -394,7 +416,6 @@ for trial_no in range(trial_seq.shape[0]):
         elif trial_info['reward_validity']=='invalid' and trial_info['resp_key'] == resp_keys[0]: 
             trial_info['reward']= trial_info['mag_left']
 
-    
     ##########################
     ###  FEEDBACK PHASE    ###
     ########################## 

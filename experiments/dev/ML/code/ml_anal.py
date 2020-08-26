@@ -3,7 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os,sys,glob,json
 
-def localAverage(series,window=5):
+def localAverage(series,window=7):
     new_s =  pd.Series(pd.np.nan, index=series.index,name='mov_avg')
     win_half = window//2
     for tI in range(win_half,series.size-win_half):
@@ -23,14 +23,12 @@ def plotResults(acc,mov_avg,outpath = 'fig1.pdf'):
     ax0.axhline(0.7, ls='--',color='black')
     ax0.axhline(0.8, ls='--',color='black')
     ax0.axhline(0.9, ls='--',color='black')
-
     ax1 = plt.subplot(grid[0,1:])
     for i in mov_avg.block_no.unique():
-        plotData = mov_avg[mov_avg.block_no==i]
+        plotData = mov_avg[mov_avg.block_no==i].copy()
         colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
         value = str(mov_avg.loc[1,'avg'])
-        sns.lineplot(x='trial_no',y='{}'.format(value) ,palette=colors[i-1],data=plotData)
-
+        sns.lineplot(x='trial_no',y='{}'.format(value) ,palette=colors[int(i-1)],data=plotData)
     plt.tight_layout()
     plt.savefig(outpath)
 
@@ -45,96 +43,77 @@ def runAnal(datFolder):
         allDat = pd.read_csv(datFolder)
         outpath= datFolder.replace('csv','png')
 
-    #shell()
     allDat.correct = allDat.correct.astype(int)
-    if 'left' in allDat.resp_key:
+    if 'left' in allDat.resp_key.values:
         left = 'left'
         right = 'right'
     else:
         left = 51200
         right = 53248
-    allDat['prob_left'] = 0.2
-    allDat['prob_left'].loc[allDat['high_prob_side'] == left ]= 0.8
-    allDat['prob_right'] = 0.2
-    allDat['prob_right'].loc[allDat['high_prob_side'] == right ]= 0.8
-    allDat['ev_left'] = allDat.mag_left*allDat.prob_left
-    allDat['ev_right'] = allDat.mag_right*allDat.prob_right
-    allDat['ev_correct_resp'] = left
-    allDat['ev_correct_resp'].loc[allDat['ev_left']<allDat['ev_right']] = right
+
+    # RL learner
+    alpha = 0.12
+    allDat['rl_prob'] = 0.5
+    for idx,item in allDat['rl_prob'].items(): 
+        allDat.loc[idx+1,'rl_prob']=(allDat.loc[idx,'rl_prob'] + alpha*(allDat.loc[idx,'option1_outcome'] - allDat.loc[idx,'rl_prob'])).copy()
+    allDat = allDat.loc[0:399,:]
+    
+    #allDat['corr_color'] = 1#-allDat.loc[1,'high_prob']
+    #allDat['corr_color'].loc[allDat.loc[:,'high_prob_color']==allDat.loc[1,'option1_color']] = 0#allDat.loc[1,'high_prob']
+    
+    plt.plot(allDat.trial_no,allDat.rl_prob)
+    plt.plot(allDat.trial_no,allDat.corr_color)
+    plt.savefig(outpath.replace('2020','2019'))
+
+    allDat['prob_left'] = 1-allDat['high_prob']
+    allDat['prob_left'].loc[allDat['high_prob_side'] == left ]= allDat['high_prob']
+    allDat['prob_right'] = 1-allDat['high_prob']
+    allDat['prob_right'].loc[allDat['high_prob_side'] == right ]= allDat['high_prob']
+    allDat['prob_correct_resp'] = left
+    allDat['prob_correct_resp'].loc[allDat['prob_left']<allDat['prob_right']] = right
+    allDat['prob_correct'] = (allDat['prob_correct_resp'] == allDat['resp_key']).astype(int)
     allDat['mag_correct_resp'] = left
     allDat['mag_correct_resp'].loc[allDat['mag_left']<allDat['mag_right']] = right
     allDat['mag_correct'] = (allDat['mag_correct_resp'] == allDat['resp_key']).astype(int)
-    allDat['ev_correct'] = (allDat['ev_correct_resp'] == allDat['resp_key']).astype(int)
     allDat['mags'] = list(zip(allDat.mag_left,allDat.mag_right))
-
-    """
-    allDat['high_likely_color'] = allDat.block_no.replace({3:1,4:2,5:1,6:2,7:1,8:2})
-    #
-    allDat['color_left'] = 1
-    allDat['color_left'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==2)]= 2
-    allDat['color_left'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==1)]= 2
-    #
-    allDat['color_right'] = 1
-    allDat['color_right'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==1)]= 2
-    allDat['color_right'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==2)]= 2
-
-    allDat['choice'] = allDat['high_likely_color']
-    allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==1)] = 2
-    allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==2)] = 1
-
-    allDat['reward_side'] = allDat['high_likely_color']
-    allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==1)] = 2
-    allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==2)] = 1
-
-
-    allDat['mag_1'] = allDat['mag_left']
-    allDat['mag_1'].loc[(allDat['color_left']==2)] = allDat['mag_right'].loc[(allDat['color_left']==2)] 
-
-    allDat['mag_2'] = allDat['mag_left']
-    allDat['mag_2'].loc[(allDat['color_left']==1)] = allDat['mag_right'].loc[(allDat['color_left']==1)] 
-
-    columns = ['high_likely_color','color_left','color_right','choice','reward_side','mag_1','mag_2','sub_id','trial_no']
-    subset = allDat[columns]
-
-    import scipy.io as sio
-    sio.savemat('ml.mat', {'struct1':subset.to_dict("list")})
-    """
+   
     # filter
-    cleanDat = allDat.loc[allDat['timeout']==0]
-    cleanDat['mov_avg']= cleanDat.groupby(['sub_id'])['correct'].apply(localAverage)
-    cleanDat['avg']= 'mov_avg'
-    cleanDat['ev_mov_avg']= cleanDat.groupby(['sub_id'])['ev_correct'].apply(localAverage)
-    cleanDat['mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(localAverage)
+    cleanDat = allDat.loc[allDat.loc[:,'timeout']==0].copy()
+    cleanDat.loc[:,'mov_avg']= cleanDat.groupby(['sub_id'])['correct'].apply(localAverage)
+    cleanDat.loc[:,'prob_mov_avg']= cleanDat.groupby(['sub_id'])['prob_correct'].apply(localAverage)
+    cleanDat.loc[:,'mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(localAverage)
 
     #pd.crosstab(allDat.mags, allDat.high_prob_side)
     # aggregate data for sub stats
-    #shell()
-    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['correct','resp_time'].mean().reset_index()
-    secondlvl_acc= cleanDat.groupby(['sub_id'])['correct','resp_time'].mean().reset_index()
-    thirdlvl_acc= secondlvl_acc['correct','resp_time'].mean().reset_index()
+
+    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['correct','resp_time'].mean().reset_index().copy()
+    secondlvl_acc= cleanDat.groupby(['sub_id'])['correct','resp_time'].mean().reset_index().copy()
+    thirdlvl_acc= secondlvl_acc[['correct','resp_time']].mean().reset_index().copy()
     # plot
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
     thirdlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
 
-    correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='correct']
+    cleanDat.loc[:,'avg']= 'mov_avg'
+    correct = secondlvl_acc_long.loc[secondlvl_acc_long.loc[:,'measure']=='correct']
     plotResults(correct,cleanDat,outpath)
-
-    cleanDat['avg']= 'ev_mov_avg'
+    
+    cleanDat.loc[:,'avg']= 'prob_mov_avg'
     outpath= outpath.replace('2020','2021')
     # aggregate data for sub stats
-    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['ev_correct','resp_time'].mean().reset_index()
-    secondlvl_acc= cleanDat.groupby(['sub_id'])['ev_correct','resp_time'].mean().reset_index()
+    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['prob_correct','resp_time'].mean().reset_index().copy()
+    secondlvl_acc= cleanDat.groupby(['sub_id'])['prob_correct','resp_time'].mean().reset_index().copy()
     # plot
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
-    ev_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='ev_correct']
-    plotResults(ev_correct,cleanDat,outpath)
+    prob_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='prob_correct']
+    plotResults(prob_correct,cleanDat,outpath)
 
     outpath= outpath.replace('2021','2022')
-    cleanDat['avg']= 'mag_mov_avg'
+    cleanDat.loc[:,'avg']= 'mag_mov_avg'
     # aggregate data for sub stats
-    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['mag_correct','resp_time'].mean().reset_index()
-    secondlvl_acc= cleanDat.groupby(['sub_id'])['mag_correct','resp_time'].mean().reset_index()
+    firstlvl_acc= cleanDat.groupby(['sub_id','ses_id'])['mag_correct','resp_time'].mean().reset_index().copy()
+    secondlvl_acc= cleanDat.groupby(['sub_id'])['mag_correct','resp_time'].mean().reset_index().copy()
     # plot
+    shell()
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
     mag_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='mag_correct']
     plotResults(mag_correct,cleanDat,outpath)
