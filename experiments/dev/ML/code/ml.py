@@ -122,9 +122,11 @@ np.random.shuffle(colors)
 trial_info['option1_color'] = colors[0]
 trial_info['option2_color'] = colors[1]
 # counterbalance the order of volatile and stable blocks across subs and sessions (make sure that balancing is orthogonal to color counterbalancing)
-block_type_order = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
+trial_info['block_type_order'] = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
+trial_info['block_type_order'] = ['sv','vs'][int(trial_info['sub_id']<5)] # (v)olatile, (s)table
+
 np.random.shuffle(param['volatile_blocks'])
-if block_type_order == 'sv':
+if trial_info['block_type_order'] == 'sv':
     block_types = ['stable']+['volatile']*round(len(param['volatile_blocks']))
     blocks = param['stable_blocks']+ param['volatile_blocks']
 else:
@@ -132,7 +134,6 @@ else:
     blocks = param['volatile_blocks']+param['stable_blocks']
 
 # create building blocks of possible location/validity combinations 
-
 reward_ratio = np.array([1]*round(reward_info['high_prob']*reward_info['rep_block'])+[0]*round((1-reward_info['high_prob'])*reward_info['rep_block']))
 # extend this balanced ratio to location (left,right)
 # 0 unreward left, 1 rewarded left, 2 unrewarded right, rewarded right
@@ -161,9 +162,9 @@ pause_seq = np.arange(0,trial_seq.shape[0],param['pause_interval'])
 
 # alternating between target colors across blocks (if uneven number of blocks, round up, and drop extra blocks implicitly)
 color_seq = [colors, colors[::-1]]*np.ceil(len(block_types)/2).astype(int)
+
 # define sequence when a block switch should occur
-change_seq = np.cumsum(pd.Series(blocks).shift())
-change_seq[0] = 0
+change_seq = np.cumsum([0]+blocks[:-1])
 
 # 0,1 target is on left, 2,3 target is on right
 high_prob_side = [resp_keys[0] if i in [0,1] else resp_keys[1] for i in trial_seq]
@@ -236,12 +237,13 @@ while 'c' not in event.getKeys():
 ######################
 for trial_no in range(trial_seq.shape[0]):
     # set Block variables every time a context change occurred
-    if trial_no in change_seq.values:
+    if trial_no in change_seq:
         trial_info['block_type'] = block_types[trial_info['block_no']]
         trial_info['block_length'] = blocks[trial_info['block_no']]
         trial_info['high_prob_color'] = color_seq[trial_info['block_no']][0]
         trial_info['low_prob_color'] = color_seq[trial_info['block_no']][1]
         trial_info['block_no'] += 1
+        trial_info['trialInBlock_no'] =0
 
     # start block message  
     if trial_no in pause_seq:
@@ -273,6 +275,7 @@ for trial_no in range(trial_seq.shape[0]):
     rightbar.fillColor = win_info['bg_color']
     trial_info['reward'] = 0   
     trial_info['trial_no'] = trial_no+1
+    trial_info['trialInBlock_no']+=1
     trial_info['fix_dur'] = fix_seq[trial_no]
     trial_info['select_dur'] = select_seq[trial_no]
     trial_info['mag_left'] = magn_seq[trial_no][0]
@@ -280,9 +283,10 @@ for trial_no in range(trial_seq.shape[0]):
     trial_info['high_prob_side'] = high_prob_side[trial_no]
     trial_info['reward_validity'] = reward_validity_seq[trial_no]
     trial_info['choice'] = trial_info['low_prob_color']
-    trial_info['outcome']= 0
     trial_info['option1_side'] = 'left'
     trial_info['option2_side'] = 'left'
+    trial_info['option1_mag'] = trial_info['mag_left']
+    trial_info['option2_mag'] = trial_info['mag_left']
     # set stimulus   
     if trial_info['high_prob_side'] == 'left':
         rightbar.fillColor = rgb_dict[trial_info['low_prob_color']]
@@ -307,8 +311,11 @@ for trial_no in range(trial_seq.shape[0]):
     # where is option 1/2
     if trial_info['color_left']==trial_info['option1_color']:
         trial_info['option2_side'] = 'right'
+        trial_info['option2_mag'] = trial_info['mag_right']
     else:
         trial_info['option1_side'] = 'right'
+        trial_info['option1_mag'] = trial_info['mag_right']
+
     # what is the outcome of option 1/2
     if trial_info['high_prob_color']==trial_info['option1_color']:
         if trial_info['reward_validity'] == 'valid':
@@ -317,9 +324,9 @@ for trial_no in range(trial_seq.shape[0]):
             trial_info['option1_outcome'] = 0
     elif trial_info['low_prob_color']==trial_info['option1_color']:
         if trial_info['reward_validity'] == 'valid':
-            trial_info['option1_outcome'] = 1
-        else:
             trial_info['option1_outcome'] = 0
+        else:
+            trial_info['option1_outcome'] = 1
     trial_info['option2_outcome'] = trial_info['option1_outcome']^1
 
     leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
@@ -463,10 +470,10 @@ for trial_no in range(trial_seq.shape[0]):
 # end of experiment message
 performance = int(100*block_correct/trial_info['trial_no'])   
 if trial_info['ses_id'] == 'prac': 
-    if performance>60:
+    if performance>55:
         endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
     else:
-        endExp.text = endExp.text.format(str(performance)+'% korrekt. Das geht besser.','Bitte wiederhole die Übung.')
+        endExp.text = endExp.text.format(str(performance)+'% korrekt.','Bitte wiederhole die Übung.')
 else:
     endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
 while 'q' not in event.getKeys():

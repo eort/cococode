@@ -359,10 +359,10 @@ for block_no in range(n_blocks):
 # end of experiment message
 performance = int(100*block_correct/n_trials)   
 if trial_info['ses_id'] == 'prac': 
-    if performance>60:
+    if performance>55:
         endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
     else:
-        endExp.text = endExp.text.format(str(performance)+'% korrekt. Das geht besser.','Bitte wiederhole die Übung.')
+        endExp.text = endExp.text.format(str(performance)+'% korrekt.','Bitte wiederhole die Übung.')
 else:
     endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
 while 'q' not in event.getKeys():

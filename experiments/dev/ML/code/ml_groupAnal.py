@@ -3,6 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import os,sys,glob,json
 import numpy as np
+from IPython import embed as shell
 
 def slidingWindow(series,window=7):
     """
@@ -14,58 +15,53 @@ def slidingWindow(series,window=7):
         new_s.iloc[tI] = series[tI-win_half:tI+win_half+1].mean()
     return new_s
 
-def plotResults(dat,acc,dv,outpath = 'fig1.pdf'):
+def plotResults(dat,acc,outpath = 'fig1.pdf'):
     """
     plot ML specific figure: 
-    left panel: absolute score
-    right panel: development over time
+    left top panel: absolute score
+    other panels: development over time within each unique block length
     """
     # various correct response measures
     sns.set(font_scale=2,style='white')
     fig = plt.figure(figsize=(25,15))
-    grid = plt.GridSpec(5, 3)
-    ax0 = plt.subplot(grid[:2,0])
+    grid = plt.GridSpec(2, 3)
+    ax0 = plt.subplot(grid[0,0])
     ax0=sns.boxplot(x="measure", y="value", data=acc,width=0.5, dodge=1)
-    sns.swarmplot(size=15,edgecolor = 'black', x="measure", y="value", data=acc,dodge=1,hue="measure")
+    sns.swarmplot(size=15,edgecolor = 'black', x="measure", y="value", data=acc,dodge=1)
     ax0.set(ylim=(0,1))
-    ax0.set(xticklabels=[])    
-    ax0.set(xlabel=None)    
+    ax0.set_xticklabels(ax0.get_xticklabels(), rotation=30)    
     for j in np.arange(0.5,1,0.1):
         ax0.axhline(j, ls='--',color='black')
-    ax0.legend(loc='lower center', ncol=2,frameon=False)
 
-    # obj/subj. probabilities
-    ax1= plt.subplot(grid[2:4:,0])
-    sns.lineplot(x='trial_no',y='corr_color' ,palette='green',data=dat)
-    sns.lineplot(x='trial_no',y='rl_prob' ,palette='red',data=dat)
-    ax1.set(ylim=(0,1))      
-
-    # legend
-    ax2= plt.subplot(grid[4,0])
-    plt.annotate('correct/mov_avg: obj. EV\nrl_correct/rl_mov_avg: subj. EV\nprob_correct/prob_mov_avg: obj. Probability\nrl_prob_correct/rl_prob_mov_avg: subj. Probability\nmag_correct/mag_mov_avg: obj. Magnitude',xy=(0,0.1),fontsize=22)
-    plt.axis('off')
-
-    # performance over time
-    for avg_idx,avg in enumerate(dv):
-        ax = plt.subplot(grid[avg_idx,1:])
-        for i in dat.block_no.unique():
-            plotData = dat.loc[dat.block_no==i,:].copy()
-            colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
-            sns.lineplot(x='trial_no',y='{}'.format(avg) ,palette=colors[int(i-1)],data=plotData)
-        if avg_idx!=len(dv)-1: 
-            ax.set(xticklabels=[])
-            ax.set(xlabel=None)
+    # sliding window plots
+    for avg_idx,avg in enumerate(dat.block_length.unique(),1):
+        if avg in [20,40]:
+            ax = plt.subplot(grid[avg_idx])
+        else:
+            ax = plt.subplot(grid[avg_idx:])
+        plotData = dat.loc[dat.block_length==avg,:].copy()
+        sns.lineplot(x='trialInBlock_no',y='value',data=plotData)
         ax.axhline(0.5, ls='--',color='black')
+        ax.set_xlabel('Trial in block')
     plt.tight_layout()
-    plt.subplots_adjust(hspace = 0.2)
     plt.savefig(outpath)
 
-def runAnal(dat_file):
+def runAnal(path):
     # some overhead
-    assert os.path.isfile(dat_file)
-    allDat = pd.read_csv(dat_file)
-    outpath= dat_file.replace('csv','png')
+    assert os.path.isdir(path)  
+    
+    allFiles = sorted(glob.glob(os.path.join(path,'sub-*/ses-*/beh/') + 'sub*scr*ml*.csv'))
+    pdList = [pd.read_csv(f) for f in allFiles]
+    allDat = pd.concat(pdList, axis=0, ignore_index=True,sort=True)
+    outpath=os.path.join('results','ml_group_results.png')
+    os.makedirs(os.path.dirname(outpath), exist_ok=True)
 
+    # fix to have trialInBlock_no
+    allDat['trialInBlock_no'] = 0
+    for sub in allDat.sub_id.unique():
+        for block_no in allDat.block_no.unique():
+            trial_count = len(allDat.loc[(allDat.block_no==block_no)&(allDat.sub_id==sub),'trialInBlock_no'])
+            allDat.loc[(allDat.block_no==block_no)&(allDat.sub_id==sub),'trialInBlock_no'] = list(range(1,trial_count+1))
     # define the current correct responses
     if allDat.loc[1,'ses_id']=='meg':
         left = 51200;right = 53248
@@ -120,16 +116,24 @@ def runAnal(dat_file):
     
     # aggregate and compute average and plot average
     # ev accuracy
-    dvs = ['mov_avg','rl_mov_avg','prob_mov_avg','rl_prob_mov_avg','mag_mov_avg']
-    firstlvl_acc= pd.melt(cleanDat.groupby(['ses_id'])['correct','rl_correct','prob_correct','rl_prob_correct','mag_correct'].mean().reset_index(),id_vars=['ses_id'],var_name='measure')
-    plotResults(cleanDat,firstlvl_acc,dvs,outpath)
+    dvs = ['mov_avg','rl_mov_avg','prob_mov_avg','rl_prob_mov_avg']
+    # leave out magnitude measure because it is obviously stupid
+
+    # compute accuracy over subjects
+    firstlvl_acc= pd.melt(cleanDat.groupby(['sub_id'])[['correct','rl_correct','prob_correct','rl_prob_correct','mag_correct']].mean().reset_index(),id_vars=['sub_id'],var_name='measure')
+    secondlvl_acc= firstlvl_acc.groupby(['measure']).mean().reset_index()
+
+    # compute development within a block for each block type and subject
+    grouped= pd.melt(cleanDat.groupby(['sub_id','block_length','trialInBlock_no'])['mov_avg'].mean().reset_index(),id_vars=['sub_id','block_length','trialInBlock_no'],var_name='measure')
+    #block_data= grouped.groupby(['block_length','trialInBlock_no','measure']).mean().reset_index()
+    plotResults(grouped,firstlvl_acc,outpath)
 
 
 if __name__ == '__main__':
     try:
-        inf = sys.argv[1]
+        path = sys.argv[1]
     except IndexError as e:
         print("Please provide an input file.")
         sys.exit(-1)
     else:
-        runAnal(inf)
+        runAnal(path)

@@ -354,7 +354,7 @@ if trial_info['ses_id'] == 'prac':
     if performance>75:
         endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
     else:
-        endExp.text = endExp.text.format(str(performance)+'% korrekt. Das geht besser.','Bitte wiederhole die Übung.')
+        endExp.text = endExp.text.format(str(performance)+'% korrekt. ','Bitte wiederhole die Übung.')
 while 'q' not in event.getKeys():
     et.drawFlip(win,[endExp])          
 

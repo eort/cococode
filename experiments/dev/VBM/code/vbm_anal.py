@@ -21,15 +21,14 @@ def plotResults(acc,outpath = 'fig1.pdf'):
 def runAnal(datFolder):
     
     if not os.path.isfile(datFolder):
-        inFiles = sorted(glob.glob(datFolder + '/*.csv'))
+        inFiles = sorted(glob.glob(os.path.join(path,'sub-*/ses-*/beh/') + 'sub*scr*vbm*.csv'))
         pdList = [pd.read_csv(f) for f in inFiles]
         allDat = pd.concat(pdList, axis=0, ignore_index=True)
-        outpath=os.path.join(datFolder,'group_results.pdf')
+        outpath=os.path.join(datFolder,'vbm_group_results.png')
+        os.makedirs(os.path.dirname(outpath), exist_ok=True)
     else:
         allDat = pd.read_csv(datFolder)
         outpath= datFolder.replace('csv','png')
-
-    allDat.correct = allDat.correct.astype(int)
 
     # aggregate data for sub stats
     firstlvl_acc= allDat.groupby(['sub_id','ses_id'])['correct','resp_time'].mean().reset_index()
