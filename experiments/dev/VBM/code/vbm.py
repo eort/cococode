@@ -195,24 +195,24 @@ for block_no in range(n_blocks):
 
         # reset variables
         trial_info['reward']=0
-        response =None
-        trial_info['timeout'] = 0
-        leftbar.fillColor = win_info['fg_color']
-        rightbar.fillColor = win_info['fg_color']
+        trial_info['resp_key']=None
+        trial_info['timeout']=0
+        leftbar.fillColor=win_info['fg_color']
+        rightbar.fillColor=win_info['fg_color']
 
         # set trial variables
         trial_info['trial_no'] = trial_no+1
         trial_info['fix_dur'] = fix_seq[block_no,trial_no]
         trial_info['select_dur'] = select_seq[block_no,trial_no]
-        trial_info['corr_resp'] = resp_keys[int((sequence.iloc[trial_info['trial_count']].CorrectLeftRight)-1)]
-        trial_info['mag_left'] = sequence.iloc[trial_info['trial_count']].mag1
-        trial_info['mag_right']= sequence.iloc[trial_info['trial_count']].mag2
-        trial_info['prob_left'] = sequence.iloc[trial_info['trial_count']].prob1
-        trial_info['prob_right'] = sequence.iloc[trial_info['trial_count']].prob2
-        trial_info['rew_left'] = sequence.iloc[trial_info['trial_count']].fb1
-        trial_info['rew_right'] = sequence.iloc[trial_info['trial_count']].fb2
-        trial_info['ev_left'] = sequence.iloc[trial_info['trial_count']].ev1
-        trial_info['ev_right'] = sequence.iloc[trial_info['trial_count']].ev2
+        trial_info['corr_resp'] = resp_keys[sequence.loc[trial_info['trial_count'],'CorrectLeftRight']-1]
+        trial_info['mag_left'] = sequence.loc[trial_info['trial_count'],'mag1']
+        trial_info['mag_right']= sequence.loc[trial_info['trial_count'],'mag2']
+        trial_info['prob_left'] = sequence.loc[trial_info['trial_count'],'prob1']
+        trial_info['prob_right'] = sequence.loc[trial_info['trial_count'],'prob2']
+        trial_info['rew_left'] = sequence.loc[trial_info['trial_count'],'fb1']
+        trial_info['rew_right'] = sequence.loc[trial_info['trial_count'],'fb2']
+        trial_info['ev_left'] = sequence.loc[trial_info['trial_count'],'ev1']
+        trial_info['ev_right'] = sequence.loc[trial_info['trial_count'],'ev2']
         trial_info['trial_count']+=1
         fix_frames = fix_frames_seq[block_no,trial_no]
         select_frames = select_frames_seq[block_no,trial_no]
@@ -221,8 +221,8 @@ for block_no in range(n_blocks):
         leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
         rightbar.height =0.1*stim_info['bar_height']* trial_info['mag_right']
         rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
-        leftProb.text =  '{:02d}%'.format(int(trial_info['prob_left']))
-        rightProb.text = '{:02d}%'.format(int(trial_info['prob_right']))
+        leftProb.text =  '{:.0f}%'.format(trial_info['prob_left'])
+        rightProb.text = '{:.0f}%'.format(trial_info['prob_right'])
 
         # check whether a button in the response box is currently pressed & present a warning if so
         t0 = core.getTime()
@@ -261,12 +261,12 @@ for block_no in range(n_blocks):
 
             #sample response
             if response_info['run_mode']=='dummy':
-                response = np.random.choice(resp_keys + [None]*resp_frames)
+                trial_info['resp_key'] = np.random.choice(resp_keys + [None]*resp_frames)
             else:
-                response = captureResponse(port,keys=resp_keys)
+                trial_info['resp_key'] = captureResponse(port,keys=resp_keys)
 
             # break if responded
-            if response in resp_keys:
+            if trial_info['resp_key'] in resp_keys:
                 break  
 
         if frame == resp_frames-1:
@@ -277,8 +277,7 @@ for block_no in range(n_blocks):
         ##########################
         # start handling response variables        
         trial_info['resp_time'] = core.getTime()-trial_info['start_stim_time']
-        trial_info['resp_key'] = response
-        trial_info['correct'] = int(response==trial_info['corr_resp'])
+        trial_info['correct'] = int(trial_info['resp_key']==trial_info['corr_resp'])
         block_correct += trial_info['correct']
 
         # define incremental reward value and define selection box

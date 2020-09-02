@@ -1,3 +1,11 @@
+2.5.2 2020-09-02
+    - changed MEG cfg_file (screen dimensions)
+    - simplified analysis script (separate online plot, from actual analysis)
+    - cleaned folder structure
+    - do not prevent direct repetitions of coherence level any more
+    - use one less coherence level (remove 0.025)
+    - have more trials per block and fewer blocks
+
 2.5.1 2020-08-21
     - add another cfg file, with a larger annulus outer radius
 

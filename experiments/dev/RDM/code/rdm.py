@@ -154,11 +154,6 @@ for block_no in range(n_blocks):
     # add zero-coherence trials
     trial_seq = np.concatenate((trial_seq,np.ones(param['n_zero'],dtype=int)*n_cohs)) 
 
-    # make sure no direction repetitions of coherence levels
-    np.random.shuffle(trial_seq)
-    while 0 in np.diff(trial_seq):
-        np.random.shuffle(trial_seq)
-
     # make sure every coherence lvl is matched with both directions equal number of times
     dir_list = [-1,1]*int(n_trials/2/n_cohs)
     dir_dict = {}
@@ -212,7 +207,7 @@ for block_no in range(n_blocks):
             et.finishExperiment(win,data_logger)
 
         # set/reset trial variables
-        response=None
+        trial_info['resp_key']=None
         trial_info['early_response']=0
         trial_info['timeout']=0
         trial_info['noise_dur'] = noise_seq[block_no,trial_no]
@@ -257,7 +252,7 @@ for block_no in range(n_blocks):
         ##########################
         ###  STIMULUS PHASE    ###
         ##########################
-        stimTime = dict(onset=np.nan)
+        stimTime=dict(onset=np.nan)
         dot_positions = np.zeros((dot_frames,n_dots,2))
         win.logOnFlip(level=logging.INFO, msg='start_noise\t{}\t{}'.format(trial_info['trial_count'],trial_info['noise_dur']))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_noise'])
@@ -287,19 +282,19 @@ for block_no in range(n_blocks):
 
             # poll response break if a key was pressed
             if response_info['run_mode']=='dummy':
-                response = np.random.choice(resp_keys + [None]*dot_frames)
+                trial_info['resp_key']=np.random.choice(resp_keys + [None]*dot_frames)
             else:
-                response = captureResponse(port,keys=resp_keys)
+                trial_info['resp_key']=captureResponse(port,keys=resp_keys)
             # break if responded
-            if response in resp_keys:
+            if trial_info['resp_key'] in resp_keys:
                 break  
 
         ##########################
         ###  POST PROCESSING   ###
         ##########################
         trial_info['resp_time'] = core.getTime()-stimTime['onset']
-        trial_info['resp_key'] = response
-        trial_info['correct'] = int(response==trial_info['corr_resp'])
+        trial_info['resp_key'] = trial_info['resp_key']
+        trial_info['correct'] = int(trial_info['resp_key']==trial_info['corr_resp'])
         trial_info['total_correct']+=trial_info['correct']  
 
         win.logOnFlip(level=logging.INFO, msg='resp_time\t{}\t{}'.format(trial_info['trial_count'],trial_info['resp_time']))

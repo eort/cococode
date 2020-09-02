@@ -27,9 +27,7 @@ def plotResults(dat,acc,dv,outpath = 'fig1.pdf'):
     ax0 = plt.subplot(grid[:2,0])
     ax0=sns.boxplot(x="measure", y="value", data=acc,width=0.5, dodge=1)
     sns.swarmplot(size=15,edgecolor = 'black', x="measure", y="value", data=acc,dodge=1,hue="measure")
-    ax0.set(ylim=(0,1))
-    ax0.set(xticklabels=[])    
-    ax0.set(xlabel=None)    
+    ax0.set(xticklabels=[],xlabel=None,ylim=(0,1),ylabel = 'Performance (%)')    
     for j in np.arange(0.5,1,0.1):
         ax0.axhline(j, ls='--',color='black')
     ax0.legend(loc='lower center', ncol=2,frameon=False)
@@ -53,8 +51,9 @@ def plotResults(dat,acc,dv,outpath = 'fig1.pdf'):
             colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
             sns.lineplot(x='trial_no',y='{}'.format(avg) ,palette=colors[int(i-1)],data=plotData)
         if avg_idx!=len(dv)-1: 
-            ax.set(xticklabels=[])
-            ax.set(xlabel=None)
+            ax.set(xticklabels=[],xlabel=None)
+        else:
+            ax.set(xlabel='Performance measure')
         ax.axhline(0.5, ls='--',color='black')
     plt.tight_layout()
     plt.subplots_adjust(hspace = 0.2)

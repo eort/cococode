@@ -192,7 +192,7 @@ mon.setSizePix(win_info['win_size'])
 win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscr'],units="deg",autoLog=0,monitor=mon)
 
 # and text stuff
-startExp = visual.TextStim(win,text='Willkommen zur Lernaufgabe!\n Gleich geht es los.',color=win_info['fg_color'],height=0.35,autoLog=0)
+startExp = visual.TextStim(win,text='Willkommen zur Lernaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.35,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.35,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
 endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.35)
@@ -269,44 +269,48 @@ for trial_no in range(trial_seq.shape[0]):
     if 'q' in event.getKeys():
         et.finishExperiment(win,data_logger)
 
-    # reset/set trial variables
-    response =None
+    #######################
+    ###  SET VARIABLES  ###
+    #######################
+    # first reset 
+    trial_info['resp_key']=None
     leftbar.fillColor = win_info['bg_color']
-    rightbar.fillColor = win_info['bg_color']
+    rightbar.fillColor = win_info['bg_color']    
     trial_info['reward'] = 0   
+
+    # read out trial variables
     trial_info['trial_no'] = trial_no+1
     trial_info['trialInBlock_no']+=1
-    trial_info['fix_dur'] = fix_seq[trial_no]
-    trial_info['select_dur'] = select_seq[trial_no]
     trial_info['mag_left'] = magn_seq[trial_no][0]
     trial_info['mag_right'] = magn_seq[trial_no][1]
     trial_info['high_prob_side'] = high_prob_side[trial_no]
     trial_info['reward_validity'] = reward_validity_seq[trial_no]
-    trial_info['choice'] = trial_info['low_prob_color']
-    trial_info['option1_side'] = 'left'
-    trial_info['option2_side'] = 'left'
-    trial_info['option1_mag'] = trial_info['mag_left']
-    trial_info['option2_mag'] = trial_info['mag_left']
-    # set stimulus   
+
+    # collect information on the choice options
+    trial_info['option1_side'] = 'left'     # where was option 1
+    trial_info['option2_side'] = 'left'     # where was option 2
+    trial_info['option1_mag'] = trial_info['mag_left'] # what magnitude had option 1
+    trial_info['option2_mag'] = trial_info['mag_left'] # what magnitude had option 2
+
+    # some parameters depend on the stimulus side  
     if trial_info['high_prob_side'] == 'left':
-        rightbar.fillColor = rgb_dict[trial_info['low_prob_color']]
-        leftbar.fillColor = rgb_dict[trial_info['high_prob_color']]
-        rightframe.lineColor = rgb_dict[trial_info['low_prob_color']]
-        leftframe.lineColor = rgb_dict[trial_info['high_prob_color']]
+        leftColor = rgb_dict[trial_info['high_prob_color']]
+        rightcolor = rgb_dict[trial_info['low_prob_color']]
         trial_info['color_left'] = trial_info['high_prob_color']
         trial_info['color_right'] = trial_info['low_prob_color']        
         trial_info['ev_left'] = trial_info['mag_left'] * reward_info['high_prob']
         trial_info['ev_right'] =trial_info['mag_right'] * (1-reward_info['high_prob'])
     else:
-        rightframe.lineColor = rgb_dict[trial_info['high_prob_color']]
-        leftframe.lineColor = rgb_dict[trial_info['low_prob_color']]
-        rightbar.fillColor = rgb_dict[trial_info['high_prob_color']]
-        leftbar.fillColor = rgb_dict[trial_info['low_prob_color']]
+        leftColor = rgb_dict[trial_info['low_prob_color']]
+        rightcolor = rgb_dict[trial_info['high_prob_color']]
         trial_info['color_left'] = trial_info['low_prob_color']
         trial_info['color_right'] = trial_info['high_prob_color'] 
         trial_info['ev_left'] = trial_info['mag_left'] * (1-reward_info['high_prob'])
         trial_info['ev_right'] =trial_info['mag_right'] * reward_info['high_prob']
+        
     trial_info['corr_resp'] = resp_keys[int(trial_info['ev_left']<trial_info['ev_right'])]
+    trial_info['choice'] = trial_info['color_right']
+
     # define option-based variables (regardless of side), useful for RL models/regressions
     # where is option 1/2
     if trial_info['color_left']==trial_info['option1_color']:
@@ -329,6 +333,11 @@ for trial_no in range(trial_seq.shape[0]):
             trial_info['option1_outcome'] = 1
     trial_info['option2_outcome'] = trial_info['option1_outcome']^1
 
+    # set dynamic stimulus features for the upcoming trial
+    rightbar.fillColor = rightcolor
+    rightframe.lineColor = rightcolor
+    leftbar.fillColor = leftColor
+    leftframe.lineColor = leftColor 
     leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
     leftbar.height=0.1*stim_info['bar_height']*trial_info['mag_left']
     rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
@@ -343,7 +352,7 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################
     ###  FIXATION PHASE    ###
     ##########################    
-    win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_no'],trial_info['fix_dur']))
+    win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_no'],fix_seq[trial_no]))
     win.callOnFlip(et.sendTriggers,port,trigger_info['start_trial'])
     for frame in range(fix_frames_seq[trial_no]):
         if frame == 5:
@@ -370,12 +379,12 @@ for trial_no in range(trial_seq.shape[0]):
 
         #sample response
         if response_info['run_mode']=='dummy':
-            response = np.random.choice(resp_keys+[None]*resp_frames)
+            trial_info['resp_key'] = np.random.choice(resp_keys+[None]*resp_frames)
         else:
-            response = captureResponse(port,keys=resp_keys)
+            trial_info['resp_key'] = captureResponse(port,keys=resp_keys)
 
         # break if responded
-        if response in resp_keys:
+        if trial_info['resp_key'] in resp_keys:
             break  
 
     ##########################
@@ -383,11 +392,11 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################
     # start handling response variables        
     trial_info['resp_time'] = core.getTime()-trial_info['start_stim_time']
-    trial_info['resp_key'] = response
-    trial_info['correct'] = int(response==trial_info['corr_resp'])
+    trial_info['correct'] = int(trial_info['resp_key']==trial_info['corr_resp'])
     block_correct += trial_info['correct']
-    if trial_info['correct']:
-        trial_info['choice'] = trial_info['high_prob_color']
+    if trial_info['resp_key'] == resp_keys[0]:
+        trial_info['choice'] = trial_info['color_left']
+    elif trial_info['resp_key'] == resp_keys[1]:
     # set the location of selection box
     if trial_info['resp_key'] == resp_keys[0]:
         selectbar.pos = [-stim_info['bar_x'],stim_info['bar_y']]
@@ -397,9 +406,9 @@ for trial_no in range(trial_seq.shape[0]):
     ##########################
     ###  SELECTION PHASE   ###
     ##########################    
-    if response in resp_keys:
+    if trial_info['resp_key'] in resp_keys:
         trial_info['timeout'] = 0
-        win.logOnFlip(level=logging.INFO, msg='start_select\t{}\t{}'.format(trial_info['trial_no'],trial_info['select_dur'])) 
+        win.logOnFlip(level=logging.INFO, msg='start_select\t{}\t{}'.format(trial_info['trial_no'],select_seq[trial_no])) 
         for frame in range(select_frames_seq[trial_no]):
             et.drawFlip(win,select_phase)
     else:
