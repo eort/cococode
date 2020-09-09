@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import random
 
-def drawFlip(win, stim):
+def drawFlip(win,stim):
     """
     combines drawing and window flipping
     """
@@ -11,18 +11,18 @@ def drawFlip(win, stim):
     timestamp = win.flip()
     return timestamp
 
-def captureResponseMEG(port=None, keys = ['m',None]):
+def captureResponseMEG(port,keys):
     """
     system call to read out parallel port
     """    
     if port.getInError(): 
-        return keys[0]
+        if 51200 in keys: return 51200
     elif port.getInSelected():
-        return keys[1]
+        if 53248 in keys: return 53248
     else:
         return None 
     
-def captureResponseKB(port=None,keys = ['m',None]):
+def captureResponseKB(port,keys):
     """
     poll a keyboard response
     """
@@ -30,7 +30,7 @@ def captureResponseKB(port=None,keys = ['m',None]):
     if len(resp)>0: return resp[-1]
     return None   
 
-def captureResponseDummy(port=None,keys = ['m',None]):
+def captureResponseDummy(port,keys):
     """
     poll a keyboard response
     """

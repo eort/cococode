@@ -1,17 +1,16 @@
 import os,sys,json
 import pandas as pd
 
-def run(f):
+def run(log,settings):
+
     # prep files
-    s = 'settings' + f[3:-3] + 'json'
-    out = 'timing' + f[3:-3]+ 'csv'
-    out = os.path.join(os.path.dirname(out),'timing_'+os.path.basename(out))
+    out = log.replace('.log','.csv').replace('log','timing')
     if not os.path.exists(os.path.dirname(out)):
           os.makedirs(os.path.dirname(out))  
     # load files
-    with open(s) as jsonfile:    
+    with open(settings) as jsonfile:    
         param = json.load(jsonfile)
-    df = pd.read_csv(f,delimiter='\t',header=None,names = ['timestamp','pp_type','type','idx','message'])
+    df = pd.read_csv(log,delimiter='\t',header=None,names = ['timestamp','pp_type','type','idx','message'])
     # read out log file
     for cI,c in enumerate(['start_stim','start_fix','start_feed','start_select','start_timeout','end_trial']):
         if cI== 0:
@@ -39,16 +38,17 @@ def run(f):
     timing['diff_resp']= timing['planned_resp_dur']-timing['resp_dur']
 
     # summarize findings
-    summary = timing.describe()
+    summary = timing[['diff_fix','diff_select','diff_feed','diff_resp']].describe()
     summary.to_csv(out)
-    print(timing[['diff_fix','diff_select','diff_feed','diff_resp']].describe())
+    print(summary)
     return summary
 
 if __name__ == '__main__':
     try:
-        f = sys.argv[1]
+        log = sys.argv[1]
+        settings = sys.argv[2]
     except IndexError as e:
-        print("Please provide a log file")
+        print("Please provide a log and a settings file")
         sys.exit(-1)
     else:
-        run(f)
+        run(log,settings)

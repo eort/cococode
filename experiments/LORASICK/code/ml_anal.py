@@ -2,143 +2,114 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os,sys,glob,json
-from IPython import embed as shell
+import numpy as np
 
-def localAverage(series,window=5):
+def slidingWindow(series,window=7):
+    """
+    overly complicated because index of panda series have to be taken care of
+    """
     new_s =  pd.Series(pd.np.nan, index=series.index,name='mov_avg')
     win_half = window//2
     for tI in range(win_half,series.size-win_half):
         new_s.iloc[tI] = series[tI-win_half:tI+win_half+1].mean()
     return new_s
 
-def plotResults(acc,mov_avg,outpath = 'fig1.pdf'):
-    fig = plt.figure(figsize=(20,5))
-    grid = plt.GridSpec(1, 3)
-    ax0 = plt.subplot(grid[0,0])
-    sns.set(font_scale=1,style='white')
+def plotResults(dat,acc,dv,outpath = 'fig1.pdf'):
+    """
+    plot ML specific figure: 
+    left panel: absolute score
+    right panel: development over time
+    """
+    # various correct response measures
+    sns.set(font_scale=2,style='white')
+    fig = plt.figure(figsize=(25,15))
+    grid = plt.GridSpec(5, 3)
+    ax0 = plt.subplot(grid[:2,0])
     ax0=sns.boxplot(x="measure", y="value", data=acc,width=0.5, dodge=1)
-    sns.swarmplot(size=6,edgecolor = 'black', x="measure", y="value", data=acc,dodge=1)
-    ax0.set(ylim=(0,1))
-    ax0.axhline(0.5, ls='--',color='black')
-    ax0.axhline(0.6, ls='--',color='black')
-    ax0.axhline(0.7, ls='--',color='black')
-    ax0.axhline(0.8, ls='--',color='black')
-    ax0.axhline(0.9, ls='--',color='black')
+    sns.swarmplot(size=15,edgecolor = 'black', x="measure", y="value", data=acc,dodge=1,hue="measure")
+    ax0.set(xticklabels=[],xlabel=None,ylim=(0,1),ylabel = 'Performance (%)')    
+    for j in np.arange(0.5,1,0.1):
+        ax0.axhline(j, ls='--',color='black')
+    ax0.legend(loc='lower center', ncol=2,frameon=False)
 
-    ax1 = plt.subplot(grid[0,1:])
-    for i in mov_avg.block_no.unique():
-        plotData = mov_avg[mov_avg.block_no==i]
-        colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
-        value = str(mov_avg.loc[1,'avg'])
-        sns.lineplot(x='trial_no',y='{}'.format(value) ,palette=colors[i-1],data=plotData)
+    # obj/subj. probabilities
+    ax1= plt.subplot(grid[2:4:,0])
+    sns.lineplot(x='trial_no',y='true_corr_resp' ,palette='green',data=dat)
+    sns.lineplot(x='trial_no',y='rl_prob' ,palette='red',data=dat)
+    ax1.set(ylim=(0,1))      
 
+    # legend
+    ax2= plt.subplot(grid[4,0])
+    plt.annotate('correct/mov_avg: obj. EV\nrl_correct/rl_mov_avg: subj. EV\nprob_correct/prob_mov_avg: obj. Probability\nrl_prob_correct/rl_prob_mov_avg: subj. Probability\nmag_correct/mag_mov_avg: obj. Magnitude',xy=(0,0.1),fontsize=22)
+    plt.axis('off')
+
+    # performance over time
+    for avg_idx,avg in enumerate(dv):
+        ax = plt.subplot(grid[avg_idx,1:])
+        for i in dat.block_no.unique():
+            plotData = dat.loc[dat.block_no==i,:].copy()
+            colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
+            sns.lineplot(x='trial_no',y='{}'.format(avg) ,palette=colors[int(i-1)],data=plotData)
+        if avg_idx!=len(dv)-1: 
+            ax.set(xticklabels=[],xlabel=None)
+        else:
+            ax.set(xlabel='Performance measure')
+        ax.axhline(0.5, ls='--',color='black')
     plt.tight_layout()
+    plt.subplots_adjust(hspace = 0.2)
     plt.savefig(outpath)
 
-def runAnal(datFolder):
-    
-    if not os.path.isfile(datFolder):
-        inFiles = sorted(glob.glob(datFolder + '/*.csv'))
-        pdList = [pd.read_csv(f) for f in inFiles]
-        allDat = pd.concat(pdList, axis=0, ignore_index=True)
-        outpath=os.path.join(datFolder,'group_results.pdf')
+def runAnal(dat_file):
+    # some overhead
+    assert os.path.isfile(dat_file)
+    allDat = pd.read_csv(dat_file)
+    outpath= dat_file.replace('csv','png').replace('beh','results')
+    os.makedirs(os.path.dirname(outpath), exist_ok=True)
+
+    # define the current correct responses
+    if allDat.loc[1,'ses_id']=='meg':
+        left = 51200;right = 53248
     else:
-        allDat = pd.read_csv(datFolder)
-        outpath= datFolder.replace('csv','png')
+        left = 'left';right = 'right'
 
-    #shell()
-    allDat.correct = allDat.correct.astype(int)
-    if 'left' in allDat.resp_key:
-        left = 'left'
-        right = 'right'
-    else:
-        left = 51200
-        right = 53248
-    allDat['prob_left'] = 0.2
-    allDat['prob_left'].loc[allDat['high_prob_side'] == left ]= 0.8
-    allDat['prob_right'] = 0.2
-    allDat['prob_right'].loc[allDat['high_prob_side'] == right ]= 0.8
-    allDat['ev_left'] = allDat.mag_left*allDat.prob_left
-    allDat['ev_right'] = allDat.mag_right*allDat.prob_right
-    allDat['ev_correct_resp'] = left
-    allDat['ev_correct_resp'].loc[allDat['ev_left']<allDat['ev_right']] = right
-    allDat['mag_correct_resp'] = left
-    allDat['mag_correct_resp'].loc[allDat['mag_left']<allDat['mag_right']] = right
-    allDat['mag_correct'] = (allDat['mag_correct_resp'] == allDat['resp_key']).astype(int)
-    allDat['ev_correct'] = (allDat['ev_correct_resp'] == allDat['resp_key']).astype(int)
-    allDat['mags'] = list(zip(allDat.mag_left,allDat.mag_right))
+    # RL learner
+    alpha = 0.10
+    rl_prob = np.ones((allDat.shape[0]))*0.5
+    for idx,item in enumerate(rl_prob[:-1]):
+        rl_prob[idx+1]=rl_prob[idx] + alpha*(allDat.loc[idx,'outcome1']-rl_prob[idx])
+    allDat['rl_prob'] = rl_prob   
+    allDat['true_corr_resp'] = 1-allDat.loc[1,'high_prob']
+    allDat.loc[allDat['high_prob_color']==allDat.loc[1,'color1'],'true_corr_resp'] = allDat.loc[1,'high_prob']
 
-        """
-        allDat['high_likely_color'] = allDat.block_no.replace({3:1,4:2,5:1,6:2,7:1,8:2})
-        #
-        allDat['color_left'] = 1
-        allDat['color_left'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==2)]= 2
-        allDat['color_left'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==1)]= 2
-        #
-        allDat['color_right'] = 1
-        allDat['color_right'].loc[(allDat['high_prob_side']=='left') & (allDat['high_likely_color']==1)]= 2
-        allDat['color_right'].loc[(allDat['high_prob_side']=='right') & (allDat['high_likely_color']==2)]= 2
+    # produce correct variables for probs, evs, mags
+    allDat['rl_prob_left'] = 1-allDat['rl_prob']
+    allDat.loc[allDat['position1'] == 'left','rl_prob_left']=allDat['rl_prob']
+    allDat['rl_prob_right'] = 1-allDat['rl_prob']
+    allDat.loc[allDat['position1'] == 'right','rl_prob_right']=allDat['rl_prob']
+    allDat['rl_prob_corr_resp'] = left
+    allDat.loc[allDat['rl_prob_left']<allDat['rl_prob_right'],'rl_prob_corr_resp']= right
+    allDat['rl_prob_correct'] = (allDat['rl_prob_corr_resp'] == allDat['resp_key']).astype(int)
 
-        allDat['choice'] = allDat['high_likely_color']
-        allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==1)] = 2
-        allDat['choice'].loc[(allDat['correct']==0) & (allDat['high_likely_color']==2)] = 1
-
-        allDat['reward_side'] = allDat['high_likely_color']
-        allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==1)] = 2
-        allDat['reward_side'].loc[(allDat['reward_validity']=='invalid') & (allDat['high_likely_color']==2)] = 1
-
-
-        allDat['mag_1'] = allDat['mag_left']
-        allDat['mag_1'].loc[(allDat['color_left']==2)] = allDat['mag_right'].loc[(allDat['color_left']==2)] 
-
-        allDat['mag_2'] = allDat['mag_left']
-        allDat['mag_2'].loc[(allDat['color_left']==1)] = allDat['mag_right'].loc[(allDat['color_left']==1)] 
-
-        columns = ['high_likely_color','color_left','color_right','choice','reward_side','mag_1','mag_2','sub_id','trial_no']
-        subset = allDat[columns]
-
-        import scipy.io as sio
-        sio.savemat('ml.mat', {'struct1':subset.to_dict("list")})
-"""
+    allDat['rl_ev_left'] = allDat['rl_prob_left']*allDat['mag_left']
+    allDat['rl_ev_right'] = allDat['rl_prob_right']*allDat['mag_right']
+    allDat['rl_corr_resp'] = left
+    allDat.loc[allDat['rl_ev_left']<allDat['rl_ev_right'],'rl_corr_resp'] = right
+    allDat['rl_correct'] = (allDat['rl_corr_resp'] == allDat['resp_key']).astype(int)
+     
     # filter
-    cleanDat = allDat.loc[allDat['timeout']==0]
-    cleanDat['mov_avg']= cleanDat.groupby(['sub_id'])['correct'].apply(localAverage)
-    cleanDat['avg']= 'mov_avg'
-    cleanDat['ev_mov_avg']= cleanDat.groupby(['sub_id'])['ev_correct'].apply(localAverage)
-    cleanDat['mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(localAverage)
+    cleanDat = allDat.loc[allDat.loc[:,'timeout']==0].copy()
+    cleanDat.loc[:,'mov_avg']= cleanDat.groupby(['sub_id'])['ev_correct'].apply(slidingWindow)
+    cleanDat.loc[:,'prob_mov_avg']= cleanDat.groupby(['sub_id'])['prob_correct'].apply(slidingWindow)
+    cleanDat.loc[:,'mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(slidingWindow)
+    cleanDat.loc[:,'rl_mov_avg']= cleanDat.groupby(['sub_id'])['rl_correct'].apply(slidingWindow)
+    cleanDat.loc[:,'rl_prob_mov_avg']= cleanDat.groupby(['sub_id'])['rl_prob_correct'].apply(slidingWindow)
+    
+    # aggregate and compute average and plot average
+    # ev accuracy
+    dvs = ['mov_avg','rl_mov_avg','prob_mov_avg','rl_prob_mov_avg','mag_mov_avg']
+    firstlvl_acc= pd.melt(cleanDat.groupby(['ses_id'])['ev_correct','rl_correct','prob_correct','rl_prob_correct','mag_correct'].mean().reset_index(),id_vars=['ses_id'],var_name='measure')
+    plotResults(cleanDat,firstlvl_acc,dvs,outpath)
 
-    #pd.crosstab(allDat.mags, allDat.high_prob_side)
-    # aggregate data for sub stats
-    #shell()
-    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['correct','resp_time'].mean().reset_index()
-    secondlvl_acc= cleanDat.groupby(['sub_id'])['correct','resp_time'].mean().reset_index()
-    thirdlvl_acc= secondlvl_acc['correct','resp_time'].mean().reset_index()
-    # plot
-    secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
-    thirdlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
-
-    correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='correct']
-    plotResults(correct,cleanDat,outpath)
-
-    cleanDat['avg']= 'ev_mov_avg'
-    outpath= outpath.replace('2020','2021')
-    # aggregate data for sub stats
-    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['ev_correct','resp_time'].mean().reset_index()
-    secondlvl_acc= cleanDat.groupby(['sub_id'])['ev_correct','resp_time'].mean().reset_index()
-    # plot
-    secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
-    ev_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='ev_correct']
-    plotResults(ev_correct,cleanDat,outpath)
-
-    outpath= outpath.replace('2021','2022')
-    cleanDat['avg']= 'mag_mov_avg'
-    # aggregate data for sub stats
-    firstlvl_acc= cleanDat.groupby(['sub_id','sess_id'])['mag_correct','resp_time'].mean().reset_index()
-    secondlvl_acc= cleanDat.groupby(['sub_id'])['mag_correct','resp_time'].mean().reset_index()
-    # plot
-    secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
-    mag_correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']=='mag_correct']
-    plotResults(mag_correct,cleanDat,outpath)
 
 if __name__ == '__main__':
     try:
