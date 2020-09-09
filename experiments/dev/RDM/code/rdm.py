@@ -78,7 +78,7 @@ output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(i
 # save the current settings per session, so that the data files stay slim
 settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(input_dict['sub_id'],input_dict['ses_id'],'settings')
 # save dot positions for each dot on each frame, trial and block
-position_file = os.path.join(os.path.join('sub-{:02d}','ses-{}','{}').format(input_dict['sub_id'],input_dict['ses_id'],'dot_xy'),logFileID+'_block-{}.pkl')
+position_file = os.path.join(os.path.join('sub-{:02d}','ses-{}','{}').format(input_dict['sub_id'],input_dict['ses_id'],'dot_xy'),logFileID+'_block-{:02d}.pkl')
 
 for f in [log_file,position_file,settings_file,output_file]:
     if not os.path.exists(os.path.dirname(f)): 

@@ -1,59 +1,95 @@
 """
 checks whether the timing of the experiments is within reasonable limits. 
 """
-import sys,json
+import sys,json,os,glob
+import pickle
 import pandas as pd
 from IPython import embed as shell
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import numpy as np
 
-def run(f):
+def run(dat_file):
     # load files
-    df = pd.read_csv(f,delimiter=',')#,names = ['timestamp','pp_type','type','idx','message'])
-    s = 'settings' + f[9:-3] + 'json'
-    with open(s) as jsonfile:    
-        param = json.load(jsonfile)
-
-
-    shell()
-    # read out frame info
-    stim_frame=df[['timestamp','idx','message']].loc[df.type.str.contains('cloud_frame')].set_index(['idx','message']).rename(columns={'timestamp':'cloud_frame'})
-    nostim_frame=df[['timestamp','idx','message']].loc[df.type.str.contains('nostim_frame')].set_index(['idx','message']).rename(columns={'timestamp':'nostim_frame'})
-
-    # summarize frame info
-    cloud_frame_summary=stim_frame['frame']= stim_frame.groupby('idx').diff(1).describe()
-    nostim_frame_summary=nostim_frame['frame']= nostim_frame.groupby('idx').diff(1).describe()  
-    print(cloud_frame_summary,nostim_frame_summary)
-
-    # last frame of each phase
-    end_cloud_time = stim_frame.reset_index().groupby('idx').max()
-    end_stim_time = nostim_frame.reset_index().groupby('idx').max()
-
-    # read out log file
-    for cI,c in enumerate(['start_stim','start_fix','start_feed','start_noise','end_trial','resp_time']):
-        if cI== 0:
-            timing=df[['timestamp','idx']].loc[df.type.str.contains(c)].set_index('idx').rename(columns={'timestamp':c})
-        else:
-            timing=timing.join(df[['timestamp','idx']].loc[df.type.str.contains(c)].set_index('idx').rename(columns={'timestamp':c}))
-
-    # compute phase durations
-    timing['fix_dur'] = timing['start_noise']- timing['start_fix']
-    timing['noise_dur'] = timing['start_stim']- timing['start_noise']
-    timing['feed_dur'] = timing['end_trial']- timing['start_feed']
-    timing['trial_dur'] = timing['end_trial']- timing['start_fix']
-
-    timing= timing.join(df[['message','idx']].loc[df.type.str.contains('start_noise')].set_index('idx').rename(columns={'message':'planned_noise_dur'}))
-    timing['planned_feed_dur'] = param['timing_info']['feed_dur']+0.008
-    timing['planned_fix_dur'] = param['timing_info']['fix_dur']+0.008
     
-    # compute timing accuracy
-    timing['diff_feed']= timing['planned_feed_dur']-timing['feed_dur']
-    timing['diff_noise']= timing['planned_noise_dur']-timing['noise_dur']
-    timing['diff_fix']= timing['planned_fix_dur']-timing['fix_dur']
+    assert os.path.isdir(dat_file)     
+    outpath=dat_file.replace('dot_xy','results')
+    os.makedirs(os.path.dirname(outpath), exist_ok=True)
+
+    allFiles = sorted(glob.glob(os.path.join(dat_file,'sub-*_ses-*_task-rdm_*.pkl')))
+    n_blocks = 17
+    n_trials = 53    
+    positions = []
+    try:
+        for f in allFiles:
+            with open(f,'rb') as jsonfile:    
+                positions.append(pickle.load(jsonfile))
+    except ValueError as e:
+        print("ERROR: There are no files in this directory")
+        sys.exit(-1)        
+
+    trial_pos=positions[0].loc[1,'positions']
+
+    outpath=dat_file.replace('dot_xy','temp')
+    os.makedirs(os.path.dirname(outpath), exist_ok=True)
     
-    # summarize findings
-    summary = timing[['diff_fix','diff_noise','diff_feed']].describe()
-    print(summary)
-    return summary
+
+    class AnimatedScatter(object):
+        """An animated scatter plot using matplotlib.animations.FuncAnimation."""
+        def __init__(self, data):
+            self.data = data
+            self.stream = self.data_stream()
+            # Setup the figure and axes...
+            self.fig, self.ax = plt.subplots(figsize = [5,5])
+            # Then setup FuncAnimation.
+            self.ani = animation.FuncAnimation(self.fig, self.update, interval=16,init_func=self.setup_plot, blit=True,repeat=False,save_count=self.data.shape[0]-1)
+
+        def setup_plot(self):
+            """Initial drawing of the scatter plot."""
+            try:
+                x, y = next(self.stream).T
+            except StopIteration:
+                print('Data empty')
+            self.scat = self.ax.scatter(x, y,c='black',s=1)
+            self.ax.axis([-400, 400, -400, 400])
+            return self.scat,
+
+        def data_stream(self):
+            for fr in range(self.data.shape[0]):
+                xy = self.data[fr,]
+                yield np.c_[xy[:,0], xy[:,1]]
+
+        def update(self,i):
+            """Update the scatter plot."""
+            data = next(self.stream)
+            # Set x and y data...
+            self.scat.set_offsets(data[:, :2])
+            return self.scat,
+
+    for bl in range(n_blocks):
+        for tr in range(1,n_trials+1):
+            trial_pos=positions[0].loc[tr,'positions']
+            # exclude empty frames
+            last_idx = np.where(trial_pos.sum(-1).sum(-1)==0)[0][0] 
+            trial_pos = trial_pos[:last_idx+1,]
+            print(outpath+'dots_block-{}_trial-{}.mp4'.format(bl+1,tr))
+            # run animation
+            a = AnimatedScatter(trial_pos)
+            a.ani.save(outpath+'dots_block-{}_trial-{}.mp4'.format(bl+1,tr))
+            plt.close()        
+
+            # potential processing of trial data
+
+            # compute distance of each dot to the center
+        
+            #distance = np.sqrt(trial_pos[:,:,0]**2+trial_pos[:,:,1]**2)
+            # find indices of dots when new dots changed
+            #dot_idx, frame_idx = 1new_dots = np.where(np.absolute(np.diff(distance,axis=0).T)>5)     
+            # find angle of each dot relative to either first dot in sequence or (0,0)
+            # only implemented for 2 d array, not 3d
+            #angles = [np.degrees(np.math.atan2(i-228.2,j+54.9)) for i,j in zip(a[:,0],a[:,1])]
+
+
 if __name__ == '__main__':
     try:
         f = sys.argv[1]

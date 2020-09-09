@@ -1,12 +1,15 @@
 """
 checks whether the timing of the experiments is within reasonable limits. 
 """
-import sys,json
+import sys,json,os
 import pandas as pd
 import numpy as np
 
 def run(log,settings):
     # load files
+    out = log.replace('.log','.csv').replace('log','timing')
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+
     df = pd.read_csv(log,delimiter='\t',header=None,names = ['timestamp','pp_type','type','idx','message'])
     with open(settings) as jsonfile:    
         param = json.load(jsonfile)
@@ -19,7 +22,6 @@ def run(log,settings):
     # summarize frame info during stimulus time
     stim_frame['frame_duration']= stim_frame.groupby('idx').diff(1)
     frame_summary= stim_frame['frame_duration'].describe(percentiles=percentiles)
-    print(frame_summary)
 
     # read out log file and measure when things happened
     for cI,c in enumerate(['start_stim','start_fix','start_feed','start_noise','end_trial','resp_time']):
@@ -46,14 +48,16 @@ def run(log,settings):
     
     # summarize findings
     summary = timing[['diff_fix','diff_noise','diff_feed','diff_stim']].describe(percentiles)
+    summary['frame_dur'] = frame_summary
+    summary.to_csv(out)
     print(summary)
 
 if __name__ == '__main__':
     try:
-        f = sys.argv[1]
-        g = sys.argv[2]
+        log = sys.argv[1]
+        settings = sys.argv[2]
     except IndexError as e:
         print("Please provide a log file and a settings file")
         sys.exit(-1)
     else:
-        run(f,g)
+        run(log,settings)

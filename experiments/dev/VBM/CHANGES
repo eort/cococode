@@ -1,5 +1,9 @@
+2.5.2 2020-09-08
+    - add variables to match ML task
+
 2.5.1 2020-08-21
     - revert back to probablities as numbers and magnitudes as bar fill
+    
 2.5.1 2020-08-18
     - start CHANGES log
     - save data after every block

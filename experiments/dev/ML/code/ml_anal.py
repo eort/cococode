@@ -34,7 +34,7 @@ def plotResults(dat,acc,dv,outpath = 'fig1.pdf'):
 
     # obj/subj. probabilities
     ax1= plt.subplot(grid[2:4:,0])
-    sns.lineplot(x='trial_no',y='corr_color' ,palette='green',data=dat)
+    sns.lineplot(x='trial_no',y='true_corr_resp' ,palette='green',data=dat)
     sns.lineplot(x='trial_no',y='rl_prob' ,palette='red',data=dat)
     ax1.set(ylim=(0,1))      
 
@@ -63,7 +63,8 @@ def runAnal(dat_file):
     # some overhead
     assert os.path.isfile(dat_file)
     allDat = pd.read_csv(dat_file)
-    outpath= dat_file.replace('csv','png')
+    outpath= dat_file.replace('csv','png').replace('beh','results')
+    os.makedirs(os.path.dirname(outpath), exist_ok=True)
 
     # define the current correct responses
     if allDat.loc[1,'ses_id']=='meg':
@@ -72,46 +73,32 @@ def runAnal(dat_file):
         left = 'left';right = 'right'
 
     # RL learner
-    allDat.loc[(allDat.low_prob_color==allDat.option1_color) & (allDat.reward_validity=='valid'),'option1_outcome'] = 0
-    allDat.loc[(allDat.low_prob_color==allDat.option1_color) & (allDat.reward_validity=='invalid'),'option1_outcome'] = 1
     alpha = 0.10
     rl_prob = np.ones((allDat.shape[0]))*0.5
     for idx,item in enumerate(rl_prob[:-1]):
-        rl_prob[idx+1]=rl_prob[idx] + alpha*(allDat.loc[idx,'option1_outcome']-rl_prob[idx])
+        rl_prob[idx+1]=rl_prob[idx] + alpha*(allDat.loc[idx,'outcome1']-rl_prob[idx])
     allDat['rl_prob'] = rl_prob   
-    allDat['corr_color'] = 1-allDat.loc[1,'high_prob']
-    allDat.loc[allDat['high_prob_color']==allDat.loc[1,'option1_color'],'corr_color'] = allDat.loc[1,'high_prob']
+    allDat['true_corr_resp'] = 1-allDat.loc[1,'high_prob']
+    allDat.loc[allDat['high_prob_color']==allDat.loc[1,'color1'],'true_corr_resp'] = allDat.loc[1,'high_prob']
 
     # produce correct variables for probs, evs, mags
     allDat['rl_prob_left'] = 1-allDat['rl_prob']
-    allDat.loc[allDat['option1_side'] == 'left','rl_prob_left']=allDat['rl_prob']
+    allDat.loc[allDat['position1'] == 'left','rl_prob_left']=allDat['rl_prob']
     allDat['rl_prob_right'] = 1-allDat['rl_prob']
-    allDat.loc[allDat['option1_side'] == 'right','rl_prob_right']=allDat['rl_prob']
-    allDat['rl_prob_correct_resp'] = left
-    allDat.loc[allDat['rl_prob_left']<allDat['rl_prob_right'],'rl_prob_correct_resp']= right
-    allDat['rl_prob_correct'] = (allDat['rl_prob_correct_resp'] == allDat['resp_key']).astype(int)
+    allDat.loc[allDat['position1'] == 'right','rl_prob_right']=allDat['rl_prob']
+    allDat['rl_prob_corr_resp'] = left
+    allDat.loc[allDat['rl_prob_left']<allDat['rl_prob_right'],'rl_prob_corr_resp']= right
+    allDat['rl_prob_correct'] = (allDat['rl_prob_corr_resp'] == allDat['resp_key']).astype(int)
 
     allDat['rl_ev_left'] = allDat['rl_prob_left']*allDat['mag_left']
     allDat['rl_ev_right'] = allDat['rl_prob_right']*allDat['mag_right']
-    allDat['rl_correct_resp'] = left
-    allDat.loc[allDat['rl_ev_left']<allDat['rl_ev_right'],'rl_correct_resp'] = right
-    allDat['rl_correct'] = (allDat['rl_correct_resp'] == allDat['resp_key']).astype(int)
- 
-    allDat['prob_left'] = 1-allDat['high_prob']
-    allDat.loc[allDat['high_prob_side'] == left,'prob_left']=allDat['high_prob']
-    allDat['prob_right'] = 1-allDat['high_prob']
-    allDat.loc[allDat['high_prob_side'] == right,'prob_right']=allDat['high_prob']
-    allDat['prob_correct_resp'] = left
-    allDat.loc[allDat['prob_left']<allDat['prob_right'],'prob_correct_resp']= right
-    allDat['prob_correct'] = (allDat['prob_correct_resp'] == allDat['resp_key']).astype(int)
-    allDat['mag_correct_resp'] = left
-    allDat.loc[allDat['mag_left']<allDat['mag_right'],'mag_correct_resp'] = right
-    allDat['mag_correct'] = (allDat['mag_correct_resp'] == allDat['resp_key']).astype(int)
-    allDat['mags'] = list(zip(allDat.mag_left,allDat.mag_right))
-    
+    allDat['rl_corr_resp'] = left
+    allDat.loc[allDat['rl_ev_left']<allDat['rl_ev_right'],'rl_corr_resp'] = right
+    allDat['rl_correct'] = (allDat['rl_corr_resp'] == allDat['resp_key']).astype(int)
+     
     # filter
     cleanDat = allDat.loc[allDat.loc[:,'timeout']==0].copy()
-    cleanDat.loc[:,'mov_avg']= cleanDat.groupby(['sub_id'])['correct'].apply(slidingWindow)
+    cleanDat.loc[:,'mov_avg']= cleanDat.groupby(['sub_id'])['ev_correct'].apply(slidingWindow)
     cleanDat.loc[:,'prob_mov_avg']= cleanDat.groupby(['sub_id'])['prob_correct'].apply(slidingWindow)
     cleanDat.loc[:,'mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(slidingWindow)
     cleanDat.loc[:,'rl_mov_avg']= cleanDat.groupby(['sub_id'])['rl_correct'].apply(slidingWindow)
@@ -120,7 +107,7 @@ def runAnal(dat_file):
     # aggregate and compute average and plot average
     # ev accuracy
     dvs = ['mov_avg','rl_mov_avg','prob_mov_avg','rl_prob_mov_avg','mag_mov_avg']
-    firstlvl_acc= pd.melt(cleanDat.groupby(['ses_id'])['correct','rl_correct','prob_correct','rl_prob_correct','mag_correct'].mean().reset_index(),id_vars=['ses_id'],var_name='measure')
+    firstlvl_acc= pd.melt(cleanDat.groupby(['ses_id'])['ev_correct','rl_correct','prob_correct','rl_prob_correct','mag_correct'].mean().reset_index(),id_vars=['ses_id'],var_name='measure')
     plotResults(cleanDat,firstlvl_acc,dvs,outpath)
 
 

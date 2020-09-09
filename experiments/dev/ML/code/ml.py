@@ -52,7 +52,7 @@ while True:
     if inputGUI.OK == False:
         logging.warning("Experiment aborted by user")
         core.quit()
-    if  input_dict['ses_id'] in ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)] +['scr','prac','pilot','intake']:
+    if input_dict['ses_id'] in ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)] +['scr','prac','intake']:
         break
     else:
         logging.warning('WARNING: {} is not a valid ses_id'.format(input_dict['ses_id']))
@@ -83,9 +83,10 @@ log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(inpu
 output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['ses_id'],'beh')
 # save the current settings per session, so that the data files stay slim
 settings_file=os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.json').format(input_dict['sub_id'],input_dict['ses_id'],'settings')
+
+# make output directories
 for f in [settings_file,output_file,log_file]:
-    if not os.path.exists(os.path.dirname(f)): 
-        os.makedirs(os.path.dirname(f))
+    os.makedirs(os.path.dirname(f), exist_ok=True)
 os.system('cp {} {}'.format(jsonfile,settings_file))
 lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 
@@ -119,11 +120,10 @@ else:
     color_idx=perms[trial_info['sub_id']%len(perms)][trial_info['ses_id']-1]
 colors = stim_info['color_combinations'][color_idx]
 np.random.shuffle(colors)
-trial_info['option1_color'] = colors[0]
-trial_info['option2_color'] = colors[1]
+trial_info['color1'] = colors[0]
+trial_info['color2'] = colors[1]
 # counterbalance the order of volatile and stable blocks across subs and sessions (make sure that balancing is orthogonal to color counterbalancing)
 trial_info['block_type_order'] = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
-trial_info['block_type_order'] = ['sv','vs'][int(trial_info['sub_id']<5)] # (v)olatile, (s)table
 
 np.random.shuffle(param['volatile_blocks'])
 if trial_info['block_type_order'] == 'sv':
@@ -224,7 +224,6 @@ fix_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end]
 stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftframe,rightframe,leftbar,rightbar]
 select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbar,rightframe,leftframe,leftbar,rightbar]
 feedback_phase = [progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbar,rightframe,leftframe,leftbar,rightbar]
-timeout_phase = [progress_bar,progress_bar_start,progress_bar_end,timeout_screen]
 
 ####################
 ###  START EXP   ###
@@ -272,11 +271,14 @@ for trial_no in range(trial_seq.shape[0]):
     #######################
     ###  SET VARIABLES  ###
     #######################
-    # first reset 
+    # first reset
+    trial_info['reward'] = 0  
     trial_info['resp_key']=None
+    trial_info['timeout']=0   
+    trial_info['choice'] = None
+    trial_info['choice_side'] = None
     leftbar.fillColor = win_info['bg_color']
-    rightbar.fillColor = win_info['bg_color']    
-    trial_info['reward'] = 0   
+    rightbar.fillColor = win_info['bg_color'] 
 
     # read out trial variables
     trial_info['trial_no'] = trial_no+1
@@ -285,53 +287,67 @@ for trial_no in range(trial_seq.shape[0]):
     trial_info['mag_right'] = magn_seq[trial_no][1]
     trial_info['high_prob_side'] = high_prob_side[trial_no]
     trial_info['reward_validity'] = reward_validity_seq[trial_no]
-
-    # collect information on the choice options
-    trial_info['option1_side'] = 'left'     # where was option 1
-    trial_info['option2_side'] = 'left'     # where was option 2
-    trial_info['option1_mag'] = trial_info['mag_left'] # what magnitude had option 1
-    trial_info['option2_mag'] = trial_info['mag_left'] # what magnitude had option 2
+    trial_info['position1'] = 'left'     # where was option 1
+    trial_info['position2'] = 'left'     # where was option 1
+    trial_info['mag1'] = trial_info['mag_left'] # what magnitude had option 1
+    trial_info['mag2'] = trial_info['mag_left'] # what magnitude had option 2
+    trial_info['prob1'] = trial_info['high_prob'] # what magnitude had option 1
 
     # some parameters depend on the stimulus side  
-    if trial_info['high_prob_side'] == 'left':
+    if trial_info['high_prob_side'] == resp_keys[0]:
         leftColor = rgb_dict[trial_info['high_prob_color']]
         rightcolor = rgb_dict[trial_info['low_prob_color']]
         trial_info['color_left'] = trial_info['high_prob_color']
-        trial_info['color_right'] = trial_info['low_prob_color']        
+        trial_info['color_right'] = trial_info['low_prob_color']   
+        trial_info['prob_left'] = trial_info['high_prob']
+        trial_info['prob_right'] = 1-trial_info['high_prob']     
         trial_info['ev_left'] = trial_info['mag_left'] * reward_info['high_prob']
         trial_info['ev_right'] =trial_info['mag_right'] * (1-reward_info['high_prob'])
-    else:
+    
+        if trial_info['color_right'] == trial_info['color1']:
+            trial_info['prob1'] = 1-trial_info['high_prob']
+
+    elif trial_info['high_prob_side'] == resp_keys[1]:
         leftColor = rgb_dict[trial_info['low_prob_color']]
         rightcolor = rgb_dict[trial_info['high_prob_color']]
         trial_info['color_left'] = trial_info['low_prob_color']
         trial_info['color_right'] = trial_info['high_prob_color'] 
+        trial_info['prob_left'] = 1-trial_info['high_prob']
+        trial_info['prob_right'] = trial_info['high_prob'] 
         trial_info['ev_left'] = trial_info['mag_left'] * (1-reward_info['high_prob'])
         trial_info['ev_right'] =trial_info['mag_right'] * reward_info['high_prob']
-        
-    trial_info['corr_resp'] = resp_keys[int(trial_info['ev_left']<trial_info['ev_right'])]
-    trial_info['choice'] = trial_info['color_right']
+ 
+        if trial_info['color_left'] == trial_info['color1']:
+            trial_info['prob1'] = 1-trial_info['high_prob']
+
+    # define correct responses
+    trial_info['ev_corr_resp'] = resp_keys[int(trial_info['ev_left']<trial_info['ev_right'])]
+    trial_info['prob_corr_resp'] = resp_keys[int(trial_info['prob_left']<trial_info['prob_right'])]
+    trial_info['mag_corr_resp'] = resp_keys[int(trial_info['mag_left']<=trial_info['mag_right'])]
 
     # define option-based variables (regardless of side), useful for RL models/regressions
     # where is option 1/2
-    if trial_info['color_left']==trial_info['option1_color']:
-        trial_info['option2_side'] = 'right'
-        trial_info['option2_mag'] = trial_info['mag_right']
+    trial_info['prob2'] = 1-trial_info['prob1']
+    if trial_info['color_left']==trial_info['color1']:
+        trial_info['position2'] = 'right'
+        trial_info['mag2'] = trial_info['mag_right']
     else:
-        trial_info['option1_side'] = 'right'
-        trial_info['option1_mag'] = trial_info['mag_right']
+        trial_info['position1'] = 'right'
+        trial_info['mag1'] = trial_info['mag_right']
 
     # what is the outcome of option 1/2
-    if trial_info['high_prob_color']==trial_info['option1_color']:
-        if trial_info['reward_validity'] == 'valid':
-            trial_info['option1_outcome'] = 1
-        else:
-            trial_info['option1_outcome'] = 0
-    elif trial_info['low_prob_color']==trial_info['option1_color']:
-        if trial_info['reward_validity'] == 'valid':
-            trial_info['option1_outcome'] = 0
-        else:
-            trial_info['option1_outcome'] = 1
-    trial_info['option2_outcome'] = trial_info['option1_outcome']^1
+    if trial_info['high_prob_color']==trial_info['color1']:
+        trial_info['outcome1']=int(trial_info['reward_validity']=='valid')
+    elif trial_info['low_prob_color']==trial_info['color1']:
+        trial_info['outcome1']=int(trial_info['reward_validity']=='invalid')
+    trial_info['outcome2'] = trial_info['outcome1']^1
+    
+    if trial_info['prob_left']>trial_info['prob_right'] and trial_info['mag_left']>=trial_info['mag_right']:
+        trial_info['no_brain'] = 1
+    elif trial_info['prob_left']<trial_info['prob_right'] and trial_info['mag_left']<trial_info['mag_right']:
+        trial_info['no_brain'] = 1
+    else:
+        trial_info['no_brain'] = 0
 
     # set dynamic stimulus features for the upcoming trial
     rightbar.fillColor = rightcolor
@@ -373,7 +389,7 @@ for trial_no in range(trial_seq.shape[0]):
         if frame==resp_frames-1:
             et.drawFlip(win,fix_phase) 
         elif frame==0:
-            trial_info['start_stim_time'] = et.drawFlip(win,stim_phase) 
+            start_stim_time = et.drawFlip(win,stim_phase) 
         else:
             et.drawFlip(win,stim_phase) 
 
@@ -391,12 +407,17 @@ for trial_no in range(trial_seq.shape[0]):
     ###  POST PROCESSING   ###
     ##########################
     # start handling response variables        
-    trial_info['resp_time'] = core.getTime()-trial_info['start_stim_time']
-    trial_info['correct'] = int(trial_info['resp_key']==trial_info['corr_resp'])
-    block_correct += trial_info['correct']
+    trial_info['resp_time'] = core.getTime()-start_stim_time
+    trial_info['ev_correct'] = int(trial_info['resp_key']==trial_info['ev_corr_resp'])
+    trial_info['prob_correct'] = int(trial_info['resp_key']==trial_info['prob_corr_resp'])
+    trial_info['mag_correct'] = int(trial_info['resp_key']==trial_info['mag_corr_resp'])
     if trial_info['resp_key'] == resp_keys[0]:
-        trial_info['choice'] = trial_info['color_left']
+        trial_info['choice'] = 1+(trial_info['color_left'] == trial_info['color2'])
+        trial_info['choice_side'] = 0
     elif trial_info['resp_key'] == resp_keys[1]:
+        trial_info['choice'] = 1+(trial_info['color_right'] == trial_info['color2'])
+        trial_info['choice_side'] = 1
+
     # set the location of selection box
     if trial_info['resp_key'] == resp_keys[0]:
         selectbar.pos = [-stim_info['bar_x'],stim_info['bar_y']]
@@ -407,7 +428,6 @@ for trial_no in range(trial_seq.shape[0]):
     ###  SELECTION PHASE   ###
     ##########################    
     if trial_info['resp_key'] in resp_keys:
-        trial_info['timeout'] = 0
         win.logOnFlip(level=logging.INFO, msg='start_select\t{}\t{}'.format(trial_info['trial_no'],select_seq[trial_no])) 
         for frame in range(select_frames_seq[trial_no]):
             et.drawFlip(win,select_phase)
@@ -418,7 +438,7 @@ for trial_no in range(trial_seq.shape[0]):
         for frame in range(select_frames_seq[trial_no]):
             if frame == 5:
                 win.callOnFlip(et.sendTriggers,port,0)
-            et.drawFlip(win,timeout_phase)
+            et.drawFlip(win,[timeout_screen])
 
     # handle reward
     if trial_info['high_prob_side']==resp_keys[0]:
@@ -431,6 +451,7 @@ for trial_no in range(trial_seq.shape[0]):
             trial_info['reward']= trial_info['mag_right']
         elif trial_info['reward_validity']=='invalid' and trial_info['resp_key'] == resp_keys[0]: 
             trial_info['reward']= trial_info['mag_left']
+    prev_reward = trial_info['reward']
 
     ##########################
     ###  FEEDBACK PHASE    ###

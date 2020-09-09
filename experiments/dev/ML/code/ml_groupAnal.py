@@ -24,8 +24,8 @@ def plotResults(dat,acc,outpath = 'fig1.pdf'):
     # various correct response measures
     sns.set(font_scale=2,style='white')
     fig = plt.figure(figsize=(30,20))
-    grid = plt.GridSpec(2, 3)
-    ax0=plt.subplot(grid[0,0])
+    grid = plt.GridSpec(3, 6)
+    ax0=plt.subplot(grid[0,:2])
     ax0=sns.boxplot(x="measure", y="value", data=acc,width=0.5, dodge=1)
     sns.swarmplot(size=15,edgecolor = 'black', x="measure", y="value", data=acc,dodge=1)
     ax0.set(ylim=(30,100), xlabel='Performance measure',ylabel='Accuracy (%)')
@@ -33,17 +33,34 @@ def plotResults(dat,acc,outpath = 'fig1.pdf'):
     for j in np.arange(50,100,10):
         ax0.axhline(j, ls='--',color='black')
 
-    # sliding window plots
-    for avg_idx,avg in enumerate(dat.block_length.unique(),1):
+    for avg_idx,avg in enumerate(dat.block_length.unique()):
         if avg in [20,40]:
-            ax = plt.subplot(grid[avg_idx])
+            ax = plt.subplot(grid[1,avg_idx])
         else:
-            ax = plt.subplot(grid[avg_idx:])
+            ax = plt.subplot(grid[1,avg_idx:])
             
         plotData = dat.loc[dat.block_length==avg,:].copy()
         sns.lineplot(x='trialInBlock_no',y='value',data=plotData)
         ax.axhline(50, ls='--',color='black')
+        ax.set(ylim=(20,100), xlabel='Trial in block - all subs',ylabel='Accuracy (%)',title= 'Block length: {}'.format(avg))
+    # sliding window plots
+    for avg_idx,avg in enumerate(dat.block_length.unique()):
+        if avg in [20,40]:
+            ax = plt.subplot(grid[2,avg_idx])
+        else:
+            ax = plt.subplot(grid[2,avg_idx:])
+            
+        plotData = dat.loc[dat.block_length==avg,:].copy()
+        if avg in [20,40]:
+            sns.lineplot(x='trialInBlock_no',y='value',hue='block_type_order',data=plotData,legend=False)
+        else:
+            sns.lineplot(x='trialInBlock_no',y='value',hue='block_type_order',data=plotData)
+            handles, labels = ax.get_legend_handles_labels()
+            fig.legend(handles, labels, loc='upper center')            # Put a legend to the right side
+                            
+        ax.axhline(50, ls='--',color='black')
         ax.set(ylim=(20,100), xlabel='Trial in block',ylabel='Accuracy (%)',title= 'Block length: {}'.format(avg))
+
     plt.tight_layout()
     plt.savefig(outpath)
 
@@ -51,18 +68,12 @@ def runAnal(path):
     # some overhead
     assert os.path.isdir(path)  
     
-    allFiles = sorted(glob.glob(os.path.join(path,'sub-*/ses-*/beh/') + 'sub*scr*ml*.csv'))
+    allFiles = sorted(glob.glob(os.path.join(path,'sub-9*/ses-*/beh/') + 'sub*scr*ml*.csv'))
     pdList = [pd.read_csv(f) for f in allFiles]
     allDat = pd.concat(pdList, axis=0, ignore_index=True,sort=True)
-    outpath=os.path.join(path,'results','ml_group_results.png')
+    outpath=os.path.join(path,'results','ml_group_results_no_nb.png')
     os.makedirs(os.path.dirname(outpath), exist_ok=True)
 
-    # fix to have trialInBlock_no
-    allDat['trialInBlock_no'] = 0
-    for sub in allDat.sub_id.unique():
-        for block_no in allDat.block_no.unique():
-            trial_count = len(allDat.loc[(allDat.block_no==block_no)&(allDat.sub_id==sub),'trialInBlock_no'])
-            allDat.loc[(allDat.block_no==block_no)&(allDat.sub_id==sub),'trialInBlock_no'] = list(range(1,trial_count+1))
     # define the current correct responses
     if allDat.loc[1,'ses_id']=='meg':
         left = 51200;right = 53248
@@ -70,21 +81,19 @@ def runAnal(path):
         left = 'left';right = 'right'
 
     # RL learner
-    allDat.loc[(allDat.low_prob_color==allDat.option1_color) & (allDat.reward_validity=='valid'),'option1_outcome'] = 0
-    allDat.loc[(allDat.low_prob_color==allDat.option1_color) & (allDat.reward_validity=='invalid'),'option1_outcome'] = 1
     alpha = 0.10
     rl_prob = np.ones((allDat.shape[0]))*0.5
     for idx,item in enumerate(rl_prob[:-1]):
-        rl_prob[idx+1]=rl_prob[idx] + alpha*(allDat.loc[idx,'option1_outcome']-rl_prob[idx])
+        rl_prob[idx+1]=rl_prob[idx] + alpha*(allDat.loc[idx,'outcome1']-rl_prob[idx])
     allDat['rl_prob'] = rl_prob   
     allDat['corr_color'] = 1-allDat.loc[1,'high_prob']
-    allDat.loc[allDat['high_prob_color']==allDat.loc[1,'option1_color'],'corr_color'] = allDat.loc[1,'high_prob']
+    allDat.loc[allDat['high_prob_color']==allDat.loc[1,'color1'],'corr_color'] = allDat.loc[1,'high_prob']
 
     # produce correct variables for probs, evs, mags
     allDat['rl_prob_left'] = 1-allDat['rl_prob']
-    allDat.loc[allDat['option1_side'] == 'left','rl_prob_left']=allDat['rl_prob']
+    allDat.loc[allDat['position1'] == 'left','rl_prob_left']=allDat['rl_prob']
     allDat['rl_prob_right'] = 1-allDat['rl_prob']
-    allDat.loc[allDat['option1_side'] == 'right','rl_prob_right']=allDat['rl_prob']
+    allDat.loc[allDat['position1'] == 'right','rl_prob_right']=allDat['rl_prob']
     allDat['rl_prob_correct_resp'] = left
     allDat.loc[allDat['rl_prob_left']<allDat['rl_prob_right'],'rl_prob_correct_resp']= right
     allDat['rl_prob_correct'] = (allDat['rl_prob_correct_resp'] == allDat['resp_key']).astype(int)
@@ -108,8 +117,10 @@ def runAnal(path):
     allDat['mags'] = list(zip(allDat.mag_left,allDat.mag_right))
     
     # filter
-    cleanDat = allDat.loc[allDat.loc[:,'timeout']==0].copy()
-    cleanDat.loc[:,'mov_avg']= cleanDat.groupby(['sub_id'])['correct'].apply(slidingWindow)
+    cleanDat = allDat.loc[(allDat.loc[:,'nb']==0)&(allDat.loc[:,'timeout']==0)].copy()
+
+
+    cleanDat.loc[:,'mov_avg']= cleanDat.groupby(['sub_id'])['ev_correct'].apply(slidingWindow)
     cleanDat.loc[:,'prob_mov_avg']= cleanDat.groupby(['sub_id'])['prob_correct'].apply(slidingWindow)
     cleanDat.loc[:,'mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(slidingWindow)
     cleanDat.loc[:,'rl_mov_avg']= cleanDat.groupby(['sub_id'])['rl_correct'].apply(slidingWindow)
@@ -121,12 +132,13 @@ def runAnal(path):
     
 
     # compute accuracy over subjects
-    firstlvl_acc= pd.melt(cleanDat.groupby(['sub_id'])[['correct','rl_correct','prob_correct','rl_prob_correct','mag_correct']].mean().reset_index(),id_vars=['sub_id'],var_name='measure')
+    firstlvl_acc= pd.melt(cleanDat.groupby(['sub_id'])[['ev_correct','rl_correct','prob_correct','rl_prob_correct','mag_correct']].mean().reset_index(),id_vars=['sub_id'],var_name='measure')
     secondlvl_acc= firstlvl_acc.groupby(['measure']).mean().reset_index()
     firstlvl_acc.value = 100*firstlvl_acc.value
     # compute development within a block for each block type and subject
-    grouped= pd.melt(cleanDat.groupby(['sub_id','block_length','trialInBlock_no'])['mov_avg'].mean().reset_index(),id_vars=['sub_id','block_length','trialInBlock_no'],var_name='measure')
+    grouped= pd.melt(cleanDat.groupby(['sub_id','block_type_order','block_length','trialInBlock_no'])['mov_avg'].mean().reset_index(),id_vars=['sub_id','block_type_order','block_length','trialInBlock_no'],var_name='measure')
     grouped.value = 100*grouped.value
+
     plotResults(grouped,firstlvl_acc,outpath)
 
 
