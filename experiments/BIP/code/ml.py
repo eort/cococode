@@ -93,7 +93,6 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
                 "ses_id":input_dict['ses_id'],
-                'total_points':0,
                 'block_no':0,
                 'pause_no':0,
                 'high_prob':reward_info['high_prob'],
@@ -122,6 +121,7 @@ colors = stim_info['color_combinations'][color_idx]
 np.random.shuffle(colors)
 trial_info['color1'] = colors[0]
 trial_info['color2'] = colors[1]
+total_points = 0
 # counterbalance the order of volatile and stable blocks across subs and sessions (make sure that balancing is orthogonal to color counterbalancing)
 trial_info['block_type_order'] = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
 
@@ -466,7 +466,7 @@ for trial_no in range(trial_seq.shape[0]):
             progress_bar.width=0
             progress_bar.pos[0] = -bar['horiz_dist']  
             progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2
-            trial_info['total_points']+=200          
+            total_points+=200          
     else:
         feedback = frowny
 
@@ -492,7 +492,7 @@ for trial_no in range(trial_seq.shape[0]):
     # interrupt experiment if there is a pause
     if trial_info['trial_no'] in pause_seq:
         # show text at the end of a block 
-        endBlock.text = stim_info["endBlock_text"].format(trial_info['pause_no'],trial_info['total_points'])
+        endBlock.text = stim_info["endBlock_text"].format(trial_info['pause_no'],total_points)
         win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['pause_no']))    
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
@@ -505,7 +505,7 @@ if trial_info['ses_id'] == 'prac':
     else:
         endExp.text = endExp.text.format(str(performance)+'% korrekt.','Bitte wiederhole die Übung.')
 else:
-    endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
+    endExp.text = stim_info["endExp_text"].format(total_points)
 while 'q' not in event.getKeys():
     et.drawFlip(win,[endExp])    
 

@@ -89,7 +89,6 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # init logger: update the constant values (things that wont change)
 trial_info = {'sub_id':input_dict['sub_id'],
                 'ses_id':input_dict['ses_id'],
-                'trial_count':0,
                 'logFileID':logFileID}
 
 for vari in logging_info['logVars']:
@@ -100,7 +99,7 @@ for vari in logging_info['logVars']:
 ###########################################
 n_cohs = len(coherence_lvls)
 n_dots = int(rdk['dotperdva']*0.5*rdk['cloud_size']**2*np.pi)
-
+trial_count=0
 # set response keys
 resp_keys = [response_info['resp_left'],response_info['resp_right']]
 # prepare a dataframe specifically for the stimulus positions
@@ -182,7 +181,7 @@ for block_no in range(n_blocks):
     trigger_seq = ['rdk_{}_{}'.format(dir_seq[i],coherence_lvls.index(coh_seq[i])+1) for i in range(len(trial_seq))]
 
     # reset block variables
-    trial_info['total_correct'] = 0 
+    total_correct = 0 
     trial_info['block_no']=block_no+1
 
     # show block intro 
@@ -210,14 +209,13 @@ for block_no in range(n_blocks):
         trial_info['resp_key']=None
         trial_info['early_response']=0
         trial_info['timeout']=0
-        trial_info['noise_dur'] = noise_seq[block_no,trial_no]
         trial_info['trial_no'] = trial_no+1
-        trial_info['trial_count']+=1
+        trial_count+=1
         trial_info['corr_resp'] = corr_resp_seq[trial_no]
         trial_info['cur_coherence'] =coh_seq[trial_no]  
         trial_info['cur_dir'] = dir_seq[trial_no]
         trial_info['cur_trigger'] = trigger_seq[trial_no]    
-        noise_frames = int(round(trial_info['noise_dur']*win_info['framerate']))
+        noise_frames = int(round(noise_seq[block_no,trial_no]*win_info['framerate']))
         stim_frames = noise_frames+int(round(timing_info['stim_dur']*win_info['framerate']))
         dot_frames = noise_frames+int(timing_info['resp_dur']*win_info['framerate'])
 
@@ -235,7 +233,7 @@ for block_no in range(n_blocks):
                 et.drawFlip(win,[warning])  
 
         # start trial and draw fixation and wait for 
-        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_count'],timing_info['fix_dur']+0.008))
+        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_count,timing_info['fix_dur']+0.008))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_fix'])  
         for frame in range(fix_frames):
             if frame == 5:
@@ -254,7 +252,7 @@ for block_no in range(n_blocks):
         ##########################
         stimTime=dict(onset=np.nan)
         dot_positions = np.zeros((dot_frames,n_dots,2))
-        win.logOnFlip(level=logging.INFO, msg='start_noise\t{}\t{}'.format(trial_info['trial_count'],trial_info['noise_dur']))
+        win.logOnFlip(level=logging.INFO, msg='start_noise\t{}\t{}'.format(trial_count,noise_seq[block_no,trial_no]))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_noise'])
         for frame in range(dot_frames):     
             # show cloud
@@ -263,7 +261,7 @@ for block_no in range(n_blocks):
                     et.sendTriggers(port,0)
                 elif frame==noise_frames:
                     cloud.coherence = trial_info['cur_coherence']
-                    win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_info['trial_count']))
+                    win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_count))
                     win.callOnFlip(et.sendTriggers,port,trigger_info[trial_info['cur_trigger']])
                     win.timeOnFlip(stimTime,'onset')
                 elif frame==noise_frames+5:
@@ -274,7 +272,7 @@ for block_no in range(n_blocks):
                     et.drawCompositeStim([cloud]+fixDot)
             else:               
                 et.drawCompositeStim(fixDot)
-            win.logOnFlip(level=logging.INFO, msg='stim_frame\t{}\t{}'.format(trial_info['trial_count'],frame+1))
+            win.logOnFlip(level=logging.INFO, msg='stim_frame\t{}\t{}'.format(trial_count,frame+1))
             win.flip()
                 
             # save dot position
@@ -295,9 +293,9 @@ for block_no in range(n_blocks):
         trial_info['resp_time'] = core.getTime()-stimTime['onset']
         trial_info['resp_key'] = trial_info['resp_key']
         trial_info['correct'] = int(trial_info['resp_key']==trial_info['corr_resp'])
-        trial_info['total_correct']+=trial_info['correct']  
+        total_correct+=trial_info['correct']  
 
-        win.logOnFlip(level=logging.INFO, msg='resp_time\t{}\t{}'.format(trial_info['trial_count'],trial_info['resp_time']))
+        win.logOnFlip(level=logging.INFO, msg='resp_time\t{}\t{}'.format(trial_count,trial_info['resp_time']))
         et.drawFlip(win,fixDot)
 
         # check for too early or too late responses
@@ -312,7 +310,7 @@ for block_no in range(n_blocks):
         # show feedback if no response was given       
         if trial_info['timeout'] == 1 or trial_info['early_response'] == 1:
             trial_info['correct'] = np.nan
-            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}\t{}'.format(trial_info['trial_count'],timing_info['feed_dur']+0.008))
+            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}\t{}'.format(trial_count,timing_info['feed_dur']+0.008))
             win.callOnFlip(et.sendTriggers,port,trigger_info['start_feedback'], prePad=0.024)
             for frame in range(feed_frames):
                 if frame == 5:
@@ -322,10 +320,10 @@ for block_no in range(n_blocks):
         ##########################
         ###  LOGGING  PHASE    ###
         ########################## 
-        win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_count']))
+        win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_count))
         et.drawFlip(win,fixDot)
 
-        if trial_info['trial_count'] == 1:
+        if trial_count == 1:
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
         data_logger.writeTrial(trial_info)
 
@@ -333,7 +331,7 @@ for block_no in range(n_blocks):
         all_positions.loc[trial_info['trial_no'],'positions'] = dot_positions
 
     # show end of block text
-    performance = int(100*trial_info['total_correct']/n_trials)
+    performance = int(100*total_correct/n_trials)
     if trial_info['block_no'] != n_blocks:
         endBlock.text = stim_info["blockEnd"].format(block_no+1,performance)
         win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))

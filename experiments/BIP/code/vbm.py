@@ -84,8 +84,6 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
                 "ses_id":input_dict['ses_id'],
-                'total_points':0,
-                'trial_count':0,
                 'logFileID':logFileID}
 # add variables to the logfile that are defined in config file
 for vari in logging_info['logVars']:
@@ -103,7 +101,8 @@ sequence.prob2 = 100*sequence.prob2
 sequence = sequence.sample(frac=1).reset_index(drop=True)
 # response
 resp_keys = [response_info['resp_left'],response_info['resp_right']]
-
+total_points = 0
+trial_count=0
 ####################
 ###  SET TIMING  ###
 ####################
@@ -204,20 +203,20 @@ for block_no in range(param['n_blocks']):
 
         # set trial variables
         trial_info['trial_no'] = trial_no+1
-        trial_info['mag_left'] = sequence.loc[trial_info['trial_count'],'mag1']
-        trial_info['mag_right']= sequence.loc[trial_info['trial_count'],'mag2']
-        trial_info['prob_left'] = sequence.loc[trial_info['trial_count'],'prob1']
-        trial_info['prob_right'] = sequence.loc[trial_info['trial_count'],'prob2']
-        trial_info['outcome_left'] = sequence.loc[trial_info['trial_count'],'fb1']
-        trial_info['outcome_right'] = sequence.loc[trial_info['trial_count'],'fb2']
-        trial_info['ev_left'] = sequence.loc[trial_info['trial_count'],'ev1']
-        trial_info['ev_right'] = sequence.loc[trial_info['trial_count'],'ev2']
+        trial_info['mag_left'] = sequence.loc[trial_count,'mag1']
+        trial_info['mag_right']= sequence.loc[trial_count,'mag2']
+        trial_info['prob_left'] = sequence.loc[trial_count,'prob1']
+        trial_info['prob_right'] = sequence.loc[trial_count,'prob2']
+        trial_info['outcome_left'] = sequence.loc[trial_count,'fb1']
+        trial_info['outcome_right'] = sequence.loc[trial_count,'fb2']
+        trial_info['ev_left'] = sequence.loc[trial_count,'ev1']
+        trial_info['ev_right'] = sequence.loc[trial_count,'ev2']
         
-        trial_info['ev_corr_resp'] = resp_keys[sequence.loc[trial_info['trial_count'],'CorrectLeftRight']-1]
+        trial_info['ev_corr_resp'] = resp_keys[sequence.loc[trial_count,'CorrectLeftRight']-1]
         trial_info['prob_corr_resp'] = resp_keys[int(trial_info['prob_left']<trial_info['prob_right'])]
         trial_info['mag_corr_resp'] = resp_keys[int(trial_info['mag_left']<trial_info['mag_right'])]
         
-        trial_info['trial_count']+=1
+        trial_count+=1
         fix_frames = fix_frames_seq[block_no,trial_no]
         select_frames = select_frames_seq[block_no,trial_no]
         # set stimulus
@@ -238,7 +237,7 @@ for block_no in range(param['n_blocks']):
         ##########################
         ###  FIXATION PHASE    ###
         ########################## 
-        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_info['trial_count'],fix_seq[block_no,trial_no]))
+        win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_count,fix_seq[block_no,trial_no]))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_trial']) 
         for frame in range(fix_frames):
             if frame == 5:
@@ -249,7 +248,7 @@ for block_no in range(param['n_blocks']):
         ###  STIMULUS PHASE    ###
         ##########################
         event.clearEvents()
-        win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_info['trial_count']))
+        win.logOnFlip(level=logging.INFO, msg='start_stim\t{}'.format(trial_count))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_stim']) 
         for frame in range(resp_frames): 
             # reset trigger
@@ -299,11 +298,11 @@ for block_no in range(param['n_blocks']):
 
         # draw selection phase if response given
         if not trial_info['timeout']:
-            win.logOnFlip(level=logging.INFO, msg='start_select\t{}\t{}'.format(trial_info['trial_count'],select_seq[block_no,trial_no]))
+            win.logOnFlip(level=logging.INFO, msg='start_select\t{}\t{}'.format(trial_count,select_seq[block_no,trial_no]))
             for frame in range(select_frames):
                 et.drawFlip(win,select_phase)
         elif trial_info['timeout']:
-            win.logOnFlip(level=logging.INFO, msg='start_timeout\t{}'.format(trial_info['trial_count']))
+            win.logOnFlip(level=logging.INFO, msg='start_timeout\t{}'.format(trial_count))
             win.callOnFlip(et.sendTriggers,port,trigger_info['timeout'],prePad=0.012)
             for frame in range(select_frames):
                 if frame == 5:
@@ -320,7 +319,7 @@ for block_no in range(param['n_blocks']):
                 progress_bar.width=0
                 progress_bar.pos[0] = -bar['horiz_dist']  
                 progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2
-                trial_info['total_points']+=200          
+                total_points+=200          
 
         # draw feedback_phase 
         if trial_info['outcome_left'] == 1:
@@ -333,7 +332,7 @@ for block_no in range(param['n_blocks']):
             rightbar.fillColor = bar['incorr_color']
  
         if trial_info['timeout'] ==0:    
-            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_info['trial_count']))
+            win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_count))
             win.callOnFlip(et.sendTriggers,port,trigger_info['start_feed'])
             for frame in range(feed_frames):
                 if frame == 5:
@@ -346,7 +345,7 @@ for block_no in range(param['n_blocks']):
         win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_no']))
         et.drawFlip(win,fix_phase)
 
-        if trial_info['trial_count'] == 1:
+        if trial_count == 1:
             data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
         data_logger.writeTrial(trial_info)
 
@@ -354,7 +353,7 @@ for block_no in range(param['n_blocks']):
     data_logger.write2File()
     # end of block message 
     if trial_info['block_no'] !=param['n_blocks']:
-        endBlock.text = stim_info["endBlock_text"].format(block_no+1,trial_info['total_points'])
+        endBlock.text = stim_info["endBlock_text"].format(block_no+1,total_points)
         win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))  
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
@@ -370,7 +369,7 @@ if trial_info['ses_id'] == 'prac':
     else:
         endExp.text = endExp.text.format(str(performance)+'% korrekt.','Bitte wiederhole die Übung.')
 else:
-    endExp.text = stim_info["endExp_text"].format(trial_info['total_points'])
+    endExp.text = stim_info["endExp_text"].format(total_points)
 while 'q' not in event.getKeys():
     et.drawFlip(win,[endExp])    
 
