@@ -33,28 +33,28 @@ def plotResults(dat,acc,outpath = 'fig1.pdf'):
     for j in np.arange(50,100,10):
         ax0.axhline(j, ls='--',color='black')
 
-    for avg_idx,avg in enumerate(dat.block_length.unique()):
+    for avg_idx,avg in enumerate(dat.phase_length.unique()):
         if avg in [20,40]:
             ax = plt.subplot(grid[1,avg_idx])
         else:
             ax = plt.subplot(grid[1,avg_idx:])
             
-        plotData = dat.loc[dat.block_length==avg,:].copy()
-        sns.lineplot(x='trialInBlock_no',y='value',data=plotData)
+        plotData = dat.loc[dat.phase_length==avg,:].copy()
+        sns.lineplot(x='trialInPhase_no',y='value',data=plotData)
         ax.axhline(50, ls='--',color='black')
         ax.set(ylim=(20,100), xlabel='Trial in block - all subs',ylabel='Accuracy (%)',title= 'Block length: {}'.format(avg))
     # sliding window plots
-    for avg_idx,avg in enumerate(dat.block_length.unique()):
+    for avg_idx,avg in enumerate(dat.phase_length.unique()):
         if avg in [20,40]:
             ax = plt.subplot(grid[2,avg_idx])
         else:
             ax = plt.subplot(grid[2,avg_idx:])
             
-        plotData = dat.loc[dat.block_length==avg,:].copy()
+        plotData = dat.loc[dat.phase_length==avg,:].copy()
         if avg in [20,40]:
-            sns.lineplot(x='trialInBlock_no',y='value',hue='block_type_order',data=plotData,legend=False)
+            sns.lineplot(x='trialInPhase_no',y='value',hue='phase_type_order',data=plotData,legend=False)
         else:
-            sns.lineplot(x='trialInBlock_no',y='value',hue='block_type_order',data=plotData)
+            sns.lineplot(x='trialInPhase_no',y='value',hue='phase_type_order',data=plotData)
             handles, labels = ax.get_legend_handles_labels()
             fig.legend(handles, labels, loc='upper center')            # Put a legend to the right side
                             
@@ -136,7 +136,7 @@ def runAnal(path):
     secondlvl_acc= firstlvl_acc.groupby(['measure']).mean().reset_index()
     firstlvl_acc.value = 100*firstlvl_acc.value
     # compute development within a block for each block type and subject
-    grouped= pd.melt(cleanDat.groupby(['sub_id','block_type_order','block_length','trialInBlock_no'])['mov_avg'].mean().reset_index(),id_vars=['sub_id','block_type_order','block_length','trialInBlock_no'],var_name='measure')
+    grouped= pd.melt(cleanDat.groupby(['sub_id','phase_type_order','phase_length','trialInPhase_no'])['mov_avg'].mean().reset_index(),id_vars=['sub_id','phase_type_order','phase_length','trialInPhase_no'],var_name='measure')
     grouped.value = 100*grouped.value
 
     plotResults(grouped,firstlvl_acc,outpath)

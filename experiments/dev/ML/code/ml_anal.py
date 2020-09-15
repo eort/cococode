@@ -46,8 +46,8 @@ def plotResults(dat,acc,dv,outpath = 'fig1.pdf'):
     # performance over time
     for avg_idx,avg in enumerate(dv):
         ax = plt.subplot(grid[avg_idx,1:])
-        for i in dat.block_no.unique():
-            plotData = dat.loc[dat.block_no==i,:].copy()
+        for i in dat.phase_no.unique():
+            plotData = dat.loc[dat.phase_no==i,:].copy()
             colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
             sns.lineplot(x='trial_no',y='{}'.format(avg) ,palette=colors[int(i-1)],data=plotData)
         if avg_idx!=len(dv)-1: 

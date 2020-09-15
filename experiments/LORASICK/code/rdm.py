@@ -71,7 +71,7 @@ if response_info['run_mode'] == 'dummy':
    captureResponse = et.captureResponseDummy
 
 # prepare the logfile (general log file, not data log file!) and directories
-logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],param['proj_id'],str(datetime.now()).replace(' ','-').replace(':','-'))
 log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['ses_id'],'log')
 # create a output file that collects all variables 
 output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['ses_id'],'beh')
@@ -116,7 +116,7 @@ win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=w
 event.Mouse(win=None,visible=False)
 event.clearEvents()
 # first all kind of structural messages
-startExp = visual.TextStim(win,text='Willkommen zur Weltallaufgabe!\n Gleich geht es los.',color=win_info['fg_color'],height=0.4,autoLog=0)
+startExp = visual.TextStim(win,text='Willkommen zur Weltallaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.4,autoLog=0)
 startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.4,autoLog=0)
 endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.4,autoLog=0)
@@ -207,7 +207,7 @@ for block_no in range(n_blocks):
 
         # set/reset trial variables
         trial_info['resp_key']=None
-        trial_info['early_response']=0
+        trial_info['too_early']=0
         trial_info['timeout']=0
         trial_info['trial_no'] = trial_no+1
         trial_count+=1
@@ -229,6 +229,7 @@ for block_no in range(n_blocks):
         t0 = core.getTime()
         # make sure the response of the previous trial has stopped
         while captureResponse(port,keys=resp_keys+[None]) in resp_keys:
+            et.drawFlip(win,fixDot)  
             if core.getTime()-t0>1.0: 
                 et.drawFlip(win,[warning])  
 
@@ -304,11 +305,11 @@ for block_no in range(n_blocks):
             feedback.text = 'Zu spät!'
         # don't allow responses within the noise + 200 ms of signal (anticipatory responses)
         elif frame <= noise_frames + 0.2*win_info['framerate']:
-            trial_info['early_response'] = 1
+            trial_info['too_early'] = 1
             feedback.text = 'Zu früh!' 
 
         # show feedback if no response was given       
-        if trial_info['timeout'] == 1 or trial_info['early_response'] == 1:
+        if trial_info['timeout'] == 1 or trial_info['too_early'] == 1:
             trial_info['correct'] = np.nan
             win.logOnFlip(level=logging.INFO, msg='start_feed\t{}\t{}'.format(trial_count,timing_info['feed_dur']+0.008))
             win.callOnFlip(et.sendTriggers,port,trigger_info['start_feedback'], prePad=0.024)
@@ -324,7 +325,7 @@ for block_no in range(n_blocks):
         et.drawFlip(win,fixDot)
 
         if trial_count == 1:
-            data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
+            data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['log_order'])
         data_logger.writeTrial(trial_info)
 
         # keep track of dot positions        

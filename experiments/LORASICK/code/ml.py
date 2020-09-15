@@ -77,7 +77,7 @@ if response_info['run_mode'] == 'dummy':
    captureResponse = et.captureResponseDummy
 
 # prepare the logfile (general log file, not data log file!) and directories
-logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],param['proj_id'],str(datetime.now()).replace(' ','-').replace(':','-'))
 log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['ses_id'],'log')
 # create a output file that collects all variables 
 output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['ses_id'],'beh')
@@ -93,8 +93,8 @@ lastLog = logging.LogFile(log_file, level=logging.INFO, filemode='w')
 # init logger:  update the constant values (things that wont change)
 trial_info = {"sub_id":input_dict['sub_id'],
                 "ses_id":input_dict['ses_id'],
+                'phase_no':0,
                 'block_no':0,
-                'pause_no':0,
                 'high_prob':reward_info['high_prob'],
                 'logFileID':logFileID}
 
@@ -123,14 +123,14 @@ trial_info['color1'] = colors[0]
 trial_info['color2'] = colors[1]
 total_points = 0
 # counterbalance the order of volatile and stable blocks across subs and sessions (make sure that balancing is orthogonal to color counterbalancing)
-trial_info['block_type_order'] = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
+trial_info['phase_type_order'] = ['sv','vs'][trial_info['sub_id']%(len(perms)*2)<len(perms)] # (v)olatile, (s)table
 
 np.random.shuffle(param['volatile_blocks'])
-if trial_info['block_type_order'] == 'sv':
-    block_types = ['stable']+['volatile']*round(len(param['volatile_blocks']))
+if trial_info['phase_type_order'] == 'sv':
+    phase_types = ['stable']+['volatile']*round(len(param['volatile_blocks']))
     blocks = param['stable_blocks']+ param['volatile_blocks']
 else:
-    block_types = ['volatile']*round(len(param['volatile_blocks']))+['stable']
+    phase_types = ['volatile']*round(len(param['volatile_blocks']))+['stable']
     blocks = param['volatile_blocks']+param['stable_blocks']
 
 # create building blocks of possible location/validity combinations 
@@ -161,7 +161,7 @@ magn_seq = np.array(magn_seq)
 pause_seq = np.arange(0,trial_seq.shape[0],param['pause_interval'])
 
 # alternating between target colors across blocks (if uneven number of blocks, round up, and drop extra blocks implicitly)
-color_seq = [colors, colors[::-1]]*np.ceil(len(block_types)/2).astype(int)
+color_seq = [colors, colors[::-1]]*np.ceil(len(phase_types)/2).astype(int)
 
 # define sequence when a block switch should occur
 change_seq = np.cumsum([0]+blocks[:-1])
@@ -237,22 +237,22 @@ while 'c' not in event.getKeys():
 for trial_no in range(trial_seq.shape[0]):
     # set Block variables every time a context change occurred
     if trial_no in change_seq:
-        trial_info['block_type'] = block_types[trial_info['block_no']]
-        trial_info['block_length'] = blocks[trial_info['block_no']]
-        trial_info['high_prob_color'] = color_seq[trial_info['block_no']][0]
-        trial_info['low_prob_color'] = color_seq[trial_info['block_no']][1]
-        trial_info['block_no'] += 1
-        trial_info['trialInBlock_no'] =0
+        trial_info['phase_type'] = phase_types[trial_info['phase_no']]
+        trial_info['phase_length'] = blocks[trial_info['phase_no']]
+        trial_info['high_prob_color'] = color_seq[trial_info['phase_no']][0]
+        trial_info['low_prob_color'] = color_seq[trial_info['phase_no']][1]
+        trial_info['phase_no'] += 1
+        trial_info['trialInPhase_no'] =0
 
     # start block message  
     if trial_no in pause_seq:
         # save data of a block to file (behavior is updated after every block)
-        if trial_info['pause_no']>1: data_logger.write2File()
+        if trial_info['block_no']>1: data_logger.write2File()
         event.clearEvents()
         # reset block variables
         block_correct = 0
-        trial_info['pause_no'] += 1     
-        startBlock.text = stim_info["startBlock_text"].format(trial_info['pause_no'],pause_seq.shape[0])
+        trial_info['block_no'] += 1     
+        startBlock.text = stim_info["startBlock_text"].format(trial_info['block_no'],pause_seq.shape[0])
         while True:
             et.drawFlip(win,[startBlock])                       
             cont=captureResponse(port,keys = [response_info['pause_resp'],None])    
@@ -260,7 +260,7 @@ for trial_no in range(trial_seq.shape[0]):
                 while captureResponse(port, keys=resp_keys+[None]) in resp_keys:
                     win.flip()
                 win.callOnFlip(et.sendTriggers,port,trigger_info['start_block'],reset =.5)
-                win.logOnFlip(level=logging.INFO, msg='start_block\t{}'.format(trial_info['block_no']))
+                win.logOnFlip(level=logging.INFO, msg='start_block\t{}'.format(trial_info['phase_no']))
                 win.flip()
                 break
 
@@ -282,7 +282,7 @@ for trial_no in range(trial_seq.shape[0]):
 
     # read out trial variables
     trial_info['trial_no'] = trial_no+1
-    trial_info['trialInBlock_no']+=1
+    trial_info['trialInPhase_no']+=1
     trial_info['mag_left'] = magn_seq[trial_no][0]
     trial_info['mag_right'] = magn_seq[trial_no][1]
     trial_info['high_prob_side'] = high_prob_side[trial_no]
@@ -334,6 +334,9 @@ for trial_no in range(trial_seq.shape[0]):
     else:
         trial_info['position1'] = 'right'
         trial_info['mag1'] = trial_info['mag_right']
+
+    trial_info['ev1'] = trial_info['mag1']*trial_info['prob1']
+    trial_info['ev2'] = trial_info['mag2']*trial_info['prob2']
 
     # what is the outcome of option 1/2
     if trial_info['high_prob_color']==trial_info['color1']:
@@ -411,6 +414,7 @@ for trial_no in range(trial_seq.shape[0]):
     trial_info['ev_correct'] = int(trial_info['resp_key']==trial_info['ev_corr_resp'])
     trial_info['prob_correct'] = int(trial_info['resp_key']==trial_info['prob_corr_resp'])
     trial_info['mag_correct'] = int(trial_info['resp_key']==trial_info['mag_corr_resp'])
+    block_correct += trial_info['ev_correct']
     if trial_info['resp_key'] == resp_keys[0]:
         trial_info['choice'] = 1+(trial_info['color_left'] == trial_info['color2'])
         trial_info['choice_side'] = 0
@@ -486,14 +490,14 @@ for trial_no in range(trial_seq.shape[0]):
     et.drawFlip(win,fix_phase)
     
     if trial_info['trial_no'] == 1:
-        data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
+        data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['log_order'])
     data_logger.writeTrial(trial_info)
 
     # interrupt experiment if there is a pause
     if trial_info['trial_no'] in pause_seq:
         # show text at the end of a block 
-        endBlock.text = stim_info["endBlock_text"].format(trial_info['pause_no'],total_points)
-        win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['pause_no']))    
+        endBlock.text = stim_info["endBlock_text"].format(trial_info['block_no'],total_points)
+        win.logOnFlip(level=logging.INFO, msg='end_block\t{}'.format(trial_info['block_no']))    
         for frame in range(pause_frames):
             et.drawFlip(win,[endBlock])
 

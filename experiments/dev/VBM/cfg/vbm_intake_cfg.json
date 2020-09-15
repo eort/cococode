@@ -44,7 +44,7 @@
                      "resp_mode":"keyboard",
                      "run_mode":"sub"},
     "logging_info":{"skeleton_file":"sub-{:02d}_ses-{}_task-{}_{}",
-                        "logVars":["name","version","proj_id","n_ses","n_blocks","n_trials"],
+                        "logVars":["name","version","proj_id"],
                         "first_columns":["name","proj_id","sub_id","ses_id","trial_count","block_no","trial_no","ev_left","ev_right","resp_key","correct","resp_time"],
                         "show_results": true},
     "trigger_info":{"start_block":1,

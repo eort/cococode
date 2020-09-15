@@ -69,7 +69,7 @@ if response_info['run_mode'] == 'dummy':
    captureResponse = et.captureResponseDummy
 
 # prepare the logfile (general log file, not data log file!) and directories
-logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],str(datetime.now()).replace(' ','-').replace(':','-'))
+logFileID = logging_info['skeleton_file'].format(input_dict['sub_id'],input_dict['ses_id'],param['name'],param['proj_id'],str(datetime.now()).replace(' ','-').replace(':','-'))
 log_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.log').format(input_dict['sub_id'],input_dict['ses_id'],'log')
 # create a output file that collects all variables 
 output_file = os.path.join('sub-{:02d}','ses-{}','{}',logFileID+'.csv').format(input_dict['sub_id'],input_dict['ses_id'],'beh')
@@ -342,11 +342,11 @@ for block_no in range(param['n_blocks']):
         ##########################
         ###  LOGGING  PHASE    ###
         ##########################
-        win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_info['trial_no']))
+        win.logOnFlip(level=logging.INFO, msg='end_trial\t{}'.format(trial_count))
         et.drawFlip(win,fix_phase)
 
         if trial_count == 1:
-            data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['first_columns'])
+            data_logger = et.Logger(outpath=output_file,nameDict = trial_info,first_columns = logging_info['log_order'])
         data_logger.writeTrial(trial_info)
 
     # save data of a block to file (behavior is updated after every block)
@@ -364,7 +364,7 @@ for block_no in range(param['n_blocks']):
 # end of experiment message
 performance = int(100*block_correct/param['n_trials'])   
 if trial_info['ses_id'] == 'prac': 
-    if performance>55:
+    if performance>60:
         endExp.text = endExp.text.format(str(performance)+'% korrekt. Gut gemacht!','Das Experiment kann jetzt beginnen.')
     else:
         endExp.text = endExp.text.format(str(performance)+'% korrekt.','Bitte wiederhole die Übung.')
