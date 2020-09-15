@@ -1,0 +1,19 @@
+{
+    "sub_id":"subject number",
+    "ses_id":"session id",
+    "block_no":"index of block in experiment",   
+    "trial_no":"index of trial in block", 
+    "cur_coherence":"current coherence level of motion", 
+    "cur_dir":"current direction level of motion. 0 - right, 180 - left", 
+    "correct":"whether response on a specific trial was correct or false", 
+    "resp_time":"response time of current response", 
+    "too_early":"did participants respond during noise period",
+    "timeout":"did participants miss to respond",
+    "resp_key":"which side was chosen",
+    "corr_resp":"what would be the correct response",
+    "cur_trigger":"what trigger number would be sent to the MEG",
+    "name":"name of the experiment",
+    "version":"version of the experiment",
+    "proj_id":"project this experiment is part of",
+    "logFileID":"identifier of all the files associated with this subj/session/task"
+}
