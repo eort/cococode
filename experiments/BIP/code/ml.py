@@ -116,7 +116,7 @@ perms = list(it.permutations(range(param['n_ses'])))
 if trial_info['ses_id'] not in  ['{:02d}'.format(i) for i in range(1,param['n_ses']+1)]:
     color_idx = 0
 else:
-    color_idx=perms[trial_info['sub_id']%len(perms)][trial_info['ses_id']-1]
+    color_idx=perms[trial_info['sub_id']%len(perms)][int(trial_info['ses_id'])-1]
 colors = stim_info['color_combinations'][color_idx]
 np.random.shuffle(colors)
 trial_info['color1'] = colors[0]

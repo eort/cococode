@@ -21,7 +21,7 @@
                 "fix_range":0.2,
                 "select_mean":0.492,
                 "select_range":0.1},
-    "stim_info":{"color_combinations":[["turquoise","purple"],["red","blue"],["green","brown"]],
+    "stim_info":{"color_combinations":[["turquoise","purple"],["red","blue"]],
                     "stim_colors": {"red":[0.265625,-0.19140625,-0.09375],
                                     "brown":[0.13671875,-0.08203125,-0.3671875],
                                     "green":[-0.19140625,-0.01953125,-0.30078125],

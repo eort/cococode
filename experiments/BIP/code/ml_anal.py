@@ -46,8 +46,8 @@ def plotResults(dat,acc,dv,outpath = 'fig1.pdf'):
     # performance over time
     for avg_idx,avg in enumerate(dv):
         ax = plt.subplot(grid[avg_idx,1:])
-        for i in dat.block_no.unique():
-            plotData = dat.loc[dat.block_no==i,:].copy()
+        for i in dat.phase_no.unique():
+            plotData = dat.loc[dat.phase_no==i,:].copy()
             colors = ['red','magenta','orange','yellow','green','blue','cyan','purple']
             sns.lineplot(x='trial_no',y='{}'.format(avg) ,palette=colors[int(i-1)],data=plotData)
         if avg_idx!=len(dv)-1: 
@@ -108,6 +108,7 @@ def runAnal(dat_file):
     # ev accuracy
     dvs = ['mov_avg','rl_mov_avg','prob_mov_avg','rl_prob_mov_avg','mag_mov_avg']
     firstlvl_acc= pd.melt(cleanDat.groupby(['ses_id'])['ev_correct','rl_correct','prob_correct','rl_prob_correct','mag_correct'].mean().reset_index(),id_vars=['ses_id'],var_name='measure')
+    print(firstlvl_acc)
     plotResults(cleanDat,firstlvl_acc,dvs,outpath)
 
 

@@ -21,7 +21,9 @@ def runAnal(path):
     firstlvl_acc= allDat.groupby(['sub_id','ses_id'])[['ev_correct','prob_correct','mag_correct','resp_time']].mean().reset_index()
     secondlvl_acc= allDat.groupby(['sub_id'])[['ev_correct','prob_correct','mag_correct','resp_time']].mean().reset_index()
     secondlvl_acc_long = pd.melt(secondlvl_acc,id_vars=['sub_id'],var_name='measure') 
+
     correct = secondlvl_acc_long.loc[secondlvl_acc_long['measure']!='resp_time']
+    print(correct)
     
     #####################
     ###   PLOTTING   ####
