@@ -1,0 +1,7 @@
+{
+    "beh":"the behavioural data of the experiment saved in a csv text file",
+    "log":"timing log files with timestamps of when events happened in the experiment.",
+    "settings":"The settings as defined in the config file that were used in that experimental session",
+    "results":"undefined",
+    "timing":"undefined"
+}

@@ -36,7 +36,7 @@
                     "line_width":3,
                     "bar_width":0.6,
                     "bar_height":1.36, 
-                    "bar_x":0.9,  
+                    "bar_x":1.1, 
                     "bar_y":0.17,  
                     "endExp_text":"{}\n{}",
                     "startBlock_text":"Die Übung kann jetzt beginnen!\nDrücke die Starttaste um weiter zu machen.",
