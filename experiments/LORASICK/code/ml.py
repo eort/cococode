@@ -295,8 +295,8 @@ for trial_no in range(trial_seq.shape[0]):
 
     # some parameters depend on the stimulus side  
     if trial_info['high_prob_side'] == resp_keys[0]:
-        leftColor = rgb_dict[trial_info['high_prob_color']]
-        rightcolor = rgb_dict[trial_info['low_prob_color']]
+        leftColor = et.rgb2psypy(rgb_dict[trial_info['high_prob_color']])
+        rightcolor = et.rgb2psypy(rgb_dict[trial_info['low_prob_color']])
         trial_info['color_left'] = trial_info['high_prob_color']
         trial_info['color_right'] = trial_info['low_prob_color']   
         trial_info['prob_left'] = trial_info['high_prob']
@@ -308,8 +308,8 @@ for trial_no in range(trial_seq.shape[0]):
             trial_info['prob1'] = 1-trial_info['high_prob']
 
     elif trial_info['high_prob_side'] == resp_keys[1]:
-        leftColor = rgb_dict[trial_info['low_prob_color']]
-        rightcolor = rgb_dict[trial_info['high_prob_color']]
+        leftColor = et.rgb2psypy(rgb_dict[trial_info['low_prob_color']])
+        rightcolor = et.rgb2psypy(rgb_dict[trial_info['high_prob_color']])
         trial_info['color_left'] = trial_info['low_prob_color']
         trial_info['color_right'] = trial_info['high_prob_color'] 
         trial_info['prob_left'] = 1-trial_info['high_prob']

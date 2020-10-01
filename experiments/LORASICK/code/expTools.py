@@ -3,6 +3,12 @@ import pandas as pd
 import os
 import random
 
+def rgb2psypy(RGB):
+    """
+    Convert a RGB list of colors in the range of 0-255 to the range -1 to 1
+    """
+    return tuple(((col-128)/128) for col in RGB)
+
 def drawFlip(win,stim):
     """
     combines drawing and window flipping

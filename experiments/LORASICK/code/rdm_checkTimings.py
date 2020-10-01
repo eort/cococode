@@ -17,7 +17,7 @@ def run(log,settings):
     # read out frame info
     stim_frame=df.loc[df.type.str.contains('stim_frame'),['timestamp','idx','message']].set_index(['idx','message']).rename(columns={'timestamp':'stim_frame'})
 
-    percentiles = [0.01,0.05,0.1,0.3,0.5,0.7,0.9,0.95,0.99]
+    percentiles = [0.001,0.01,0.05,0.1,0.3,0.5,0.7,0.9,0.95,0.99,0.999]
     
     # summarize frame info during stimulus time
     stim_frame['frame_duration']= stim_frame.groupby('idx').diff(1)

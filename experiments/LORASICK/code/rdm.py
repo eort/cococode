@@ -98,7 +98,7 @@ for vari in logging_info['logVars']:
 ###  PREPARE EXPERIMENTAL SEQUENCE     ####
 ###########################################
 n_cohs = len(coherence_lvls)
-n_dots = int(rdk['dotperdva']*0.5*rdk['cloud_size']**2*np.pi)
+n_dots = int(rdk['dotperdva']*(0.5*rdk['cloud_size'])**2*np.pi)
 trial_count=0
 # set response keys
 resp_keys = [response_info['resp_left'],response_info['resp_right']]

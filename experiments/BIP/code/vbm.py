@@ -131,10 +131,10 @@ endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_co
 warning = visual.TextStim(win,text=stim_info["warning"],color='white',autoLog=0,height=0.6)
 timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',height=0.6,autoLog=0)
 # and stimuli
-progress_bar =visual.Rect(win,height=bar['height'],width=bar['width'],lineColor=None,fillColor=bar['color'],pos=[-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
-progress_update =visual.Rect(win,height=bar['height'],width=0,lineColor=None,fillColor=bar['color'],autoLog=0,pos=(-bar['horiz_dist'],-bar['vert_dist']))
-progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
-progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
+progress_bar =visual.Rect(win,height=bar['height'],width=bar['width'],lineColor=None,fillColor=et.rgb2psypy(bar['color']),pos=[-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
+progress_update =visual.Rect(win,height=bar['height'],width=0,lineColor=None,fillColor=et.rgb2psypy(bar['color']),autoLog=0,pos=(-bar['horiz_dist'],-bar['vert_dist']))
+progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=et.rgb2psypy(bar['color']),pos = [-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
+progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=et.rgb2psypy(bar['color']),pos = [bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
 fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color']) 
 leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=None,pos = [-stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
 rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],lineColor=win_info['fg_color'],fillColor=None,pos = [stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
@@ -153,9 +153,9 @@ et.sendTriggers(port,0)
 
 # experimental phases (unique things on screen)
 fix_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end]
-stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftframe,rightframe,leftbar,rightbar,leftProb,rightProb]
-select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbar,rightframe,leftframe,leftbar,rightbar,leftProb,rightProb]
-feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbar,rightframe,leftframe,leftbar,rightbar,leftProb,rightProb]
+stim_phase = fixDot[:] + [progress_bar,progress_bar_start,progress_bar_end,leftbar,rightbar,leftProb,rightProb,leftframe,rightframe]
+select_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,selectbar,leftbar,rightbar,leftProb,rightProb,rightframe,leftframe]
+feedback_phase = fixDot[:] +[progress_bar,progress_bar_start,progress_bar_end,progress_update,selectbar,leftbar,rightbar,leftProb,rightProb,rightframe,leftframe]
 
 ####################
 ###  START EXP   ###
@@ -323,13 +323,13 @@ for block_no in range(param['n_blocks']):
 
         # draw feedback_phase 
         if trial_info['outcome_left'] == 1:
-            leftbar.fillColor = bar['corr_color']
+            leftbar.fillColor = et.rgb2psypy(stim_info['corr_color'])
         else:
-            leftbar.fillColor = bar['incorr_color']
+            leftbar.fillColor = et.rgb2psypy(stim_info['incorr_color'])
         if trial_info['outcome_right'] == 1:
-            rightbar.fillColor = bar['corr_color']
+            rightbar.fillColor = et.rgb2psypy(stim_info['corr_color'])
         else:
-            rightbar.fillColor = bar['incorr_color']
+            rightbar.fillColor = et.rgb2psypy(stim_info['incorr_color'])
  
         if trial_info['timeout'] ==0:    
             win.logOnFlip(level=logging.INFO, msg='start_feed\t{}'.format(trial_count))
