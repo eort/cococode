@@ -1,3 +1,7 @@
+2.5.3 2020-10-03
+    - improve the analysis script (independet of response option order)
+    - fix bug with n_dots (accidentally twice as many as indicated)
+    
 2.5.2 2020-09-02
     - changed MEG cfg_file (screen dimensions)
     - simplified analysis script (separate online plot, from actual analysis)

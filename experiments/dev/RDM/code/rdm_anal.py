@@ -18,7 +18,9 @@ def runAnal(dat_file):
     allDat['dirCoh']  = allDat['direction'] * allDat['cur_coherence']
     allDat['resp_time'] *= 1000
     allDat.loc[allDat['cur_coherence'] == 0.0,'correct'] = 0.5 
-    allDat['response'] = allDat.resp_key.replace({allDat.resp_key.unique()[1]:1,allDat.resp_key.unique()[0]:0})
+
+    key1,key2 = sorted(allDat.resp_key.unique())
+    allDat['response'] = allDat.resp_key.replace({key2:1,key1:0})
     
     #####################
     ###   AGGREGATE  ####

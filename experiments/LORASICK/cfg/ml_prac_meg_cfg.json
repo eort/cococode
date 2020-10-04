@@ -1,6 +1,6 @@
 {
     "name":"ml",
-    "version":"2.7.2",
+    "version":"2.7.3",
     "proj_id":"lorasick",
     "ses_id":"prac",
     "n_ses":3,

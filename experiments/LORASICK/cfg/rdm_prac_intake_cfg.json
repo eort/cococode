@@ -1,6 +1,6 @@
 {
     "name":"rdm",
-    "version":"2.5.2",
+    "version":"2.5.3",
     "proj_id":"lorasick",
     "ses_id":"prac",
     "n_ses":3,
@@ -31,7 +31,7 @@
                      "run_mode":"sub"},
     "stim_info":{"cloud_specs":{"annulus":2.5,
                                 "cloud_size":10,
-                                "dotperdva":1.7,
+                                "dotperdva":3.4,
                                 "size_dots":5,
                                 "dotLife":4,
                                 "speed":0.06,

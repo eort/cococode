@@ -8,7 +8,7 @@ def slidingWindow(series,window=7):
     """
     overly complicated because index of panda series have to be taken care of
     """
-    new_s =  pd.Series(pd.np.nan, index=series.index,name='mov_avg')
+    new_s =  pd.Series(np.nan, index=series.index,name='mov_avg')
     win_half = window//2
     for tI in range(win_half,series.size-win_half):
         new_s.iloc[tI] = series[tI-win_half:tI+win_half+1].mean()
@@ -67,7 +67,7 @@ def runAnal(dat_file):
     os.makedirs(os.path.dirname(outpath), exist_ok=True)
 
     # define the current correct responses
-    if allDat.loc[1,'ses_id']=='meg':
+    if allDat.loc[1,'ses_id'] in [1,2,3]:
         left = 51200;right = 53248
     else:
         left = 'left';right = 'right'
@@ -103,11 +103,12 @@ def runAnal(dat_file):
     cleanDat.loc[:,'mag_mov_avg']= cleanDat.groupby(['sub_id'])['mag_correct'].apply(slidingWindow)
     cleanDat.loc[:,'rl_mov_avg']= cleanDat.groupby(['sub_id'])['rl_correct'].apply(slidingWindow)
     cleanDat.loc[:,'rl_prob_mov_avg']= cleanDat.groupby(['sub_id'])['rl_prob_correct'].apply(slidingWindow)
-    
+
     # aggregate and compute average and plot average
     # ev accuracy
     dvs = ['mov_avg','rl_mov_avg','prob_mov_avg','rl_prob_mov_avg','mag_mov_avg']
     firstlvl_acc= pd.melt(cleanDat.groupby(['ses_id'])['ev_correct','rl_correct','prob_correct','rl_prob_correct','mag_correct'].mean().reset_index(),id_vars=['ses_id'],var_name='measure')
+    print(firstlvl_acc)
     plotResults(cleanDat,firstlvl_acc,dvs,outpath)
 
 

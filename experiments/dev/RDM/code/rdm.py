@@ -98,7 +98,7 @@ for vari in logging_info['logVars']:
 ###  PREPARE EXPERIMENTAL SEQUENCE     ####
 ###########################################
 n_cohs = len(coherence_lvls)
-n_dots = int(rdk['dotperdva']*0.5*rdk['cloud_size']**2*np.pi)
+n_dots = int(rdk['dotperdva']*(0.5*rdk['cloud_size'])**2*np.pi)
 trial_count=0
 # set response keys
 resp_keys = [response_info['resp_left'],response_info['resp_right']]
@@ -116,12 +116,12 @@ win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=w
 event.Mouse(win=None,visible=False)
 event.clearEvents()
 # first all kind of structural messages
-startExp = visual.TextStim(win,text='Willkommen zur Weltallaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.4,autoLog=0)
-startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],height=0.4,autoLog=0)
-endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.4,autoLog=0)
-endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.4,autoLog=0)
-warning = visual.TextStim(win,text=stim_info["warning"],color=win_info['fg_color'],height=0.4,autoLog=0)
-feedback = visual.TextStim(win,text='',color=win_info['fg_color'],height=0.4,autoLog=0)
+startExp = visual.TextStim(win,text='Willkommen zur Weltallaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.6,autoLog=0)
+startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],height=0.6,autoLog=0)
+endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.6,autoLog=0)
+endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.6,autoLog=0)
+warning = visual.TextStim(win,text=stim_info["warning"],color=win_info['fg_color'],height=0.6,autoLog=0)
+feedback = visual.TextStim(win,text='',color=win_info['fg_color'],height=0.6,autoLog=0)
 fixDot = et.fancyFixDot(win,fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=0.4) 
 cloud=visual.DotStim(win,color=win_info['fg_color'],fieldSize=rdk['cloud_size'],nDots=n_dots,dotLife=rdk['dotLife'],dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape='circle',coherence=0)
 middle = visual.Circle(win, size=rdk['annulus'], pos=[0,0],lineColor=None,fillColor=win_info['bg_color'],autoLog=0)
