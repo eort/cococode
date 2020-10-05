@@ -1,7 +1,7 @@
 {
     "name":"vbm",
     "version":"2.5.1",
-    "proj_id":"lorasick",
+    "proj_id":"bip",
     "ses_id":"none",
     "n_ses":3,
     "n_blocks":10,
