@@ -29,7 +29,7 @@ def runAnal(dat_file):
     firstlvl= allDat.groupby(['cur_coherence'])[['correct','resp_time']].mean().reset_index() 
     # ACC and RT over signed coherence
     firstlvl_pf= allDat.groupby(['dirCoh'])[['response','resp_time']].mean().reset_index() 
- 
+
     #####################
     ###   PLOTTING   ####
     #####################
@@ -37,7 +37,7 @@ def runAnal(dat_file):
     min_coh =  -max_coh
     firstlvl_pf.response = firstlvl_pf.response*100
     firstlvl.correct = firstlvl.correct*100
-    
+    print(firstlvl)
     fig,axs = plt.subplots(2,2,constrained_layout=1)
     sns.scatterplot(x="dirCoh", y="response", data=firstlvl_pf,ax = axs[0,0])
     sns.lineplot(x="dirCoh", y="response", data=firstlvl_pf,ax = axs[0,0])
