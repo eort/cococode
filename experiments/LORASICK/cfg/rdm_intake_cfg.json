@@ -12,7 +12,7 @@
     "coherence_lvl":[0.03, 0.06, 0.12, 0.24],
     "win_info":{"framerate":60,
                 "fullscr":1,
-                "screen_width":31,
+                "screen_width":53,
                 "screen_distance":80,
                 "bg_color":[-0.9,-0.9,-0.9],
                 "fg_color":[0.85,0.85,0.85],
