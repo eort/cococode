@@ -9,7 +9,7 @@
     "n_zero":3,
     "dir1":180,
     "dir2":0,
-    "coherence_lvl":[0.05, 0.1, 0.2, 0.4],
+    "coherence_lvl":[0.03, 0.06, 0.12, 0.24],
     "win_info":{"framerate":60,
                 "fullscr":1,
                 "screen_width":43,

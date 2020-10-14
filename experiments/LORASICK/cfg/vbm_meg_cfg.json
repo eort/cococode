@@ -1,6 +1,6 @@
 {
     "name":"vbm",
-    "version":"2.5.1",
+    "version":"2.5.2",
     "proj_id":"lorasick",
     "ses_id":"none",
     "n_ses":3,
@@ -36,7 +36,7 @@
                                         "vert_dist":1.65},       
                     "endExp_text":"Das war's!\nDu hast {} Punkte gewonnen.\nVielen Dank für deine Teilnahme.",
                     "startBlock_text":"Block {} kann jetzt beginnen!\nDrücke die Starttaste, sobald du weiter machen willst.",
-                    "endBlock_text":" Der Block ist vorbei!",
+                    "endBlock_text":"Block {} ist vorbei!\nBisher hast du {} Punkte gewonnen.\nNimm dir eine kleine Pause.",
                     "warning":"Bitte halte keine der Tasten gedrückt!"},
     "response_info":{"resp_left":51200,
                      "resp_right":53248,
