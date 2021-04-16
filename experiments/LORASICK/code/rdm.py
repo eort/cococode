@@ -150,9 +150,9 @@ for block_no in range(n_blocks):
     # create trial sequence
     trial_seq = np.tile(np.arange(n_cohs),int(n_trials/n_cohs))
     
-    # add zero-coherence trials
+    # add zero-coherence trials and shuffle
     trial_seq = np.concatenate((trial_seq,np.ones(param['n_zero'],dtype=int)*n_cohs)) 
-
+    np.random.shuffle(trial_seq)
     # make sure every coherence lvl is matched with both directions equal number of times
     dir_list = [-1,1]*int(n_trials/2/n_cohs)
     dir_dict = {}
