@@ -232,7 +232,9 @@ for block_no in range(n_blocks):
             et.drawFlip(win,fixDot)  
             if core.getTime()-t0>1.0: 
                 et.drawFlip(win,[warning])  
-
+        
+        # wait a curtesy flips before continuing
+        et.drawFlip(win,fixDot)
         # start trial and draw fixation and wait for 
         win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_count,timing_info['fix_dur']+0.008))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_fix'])  
