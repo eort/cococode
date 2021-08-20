@@ -16,11 +16,11 @@ win_size= (1280,1024)
 mon = monitors.Monitor('cocoLab',width = screen_width,distance = screen_distance)
 mon.setSizePix(win_size)
 win=visual.Window(size=win_size,color=bg_color,fullscr=1,units="deg",monitor=mon)
-        
-bigCircle = visual.Circle(win=win, size=size, pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
-rect_horiz = visual.Rect(win=win,width=size,height=size/6,fillColor=bg_color,lineColor=bg_color,autoLog=0)
-rect_vert = visual.Rect(win=win,width=size/6,height=size,fillColor=bg_color,lineColor=bg_color,autoLog=0)
-smallCircle = visual.Circle(win=win, size=size/6, pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
+shift = 1.4       
+bigCircle = visual.Circle(win=win, size=size, pos=[-shift,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
+rect_horiz = visual.Rect(win=win,width=size,pos=[-shift, 0], height=size/6,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+rect_vert = visual.Rect(win=win,width=size/6, pos=[-shift, 0], height=size,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+smallCircle = visual.Circle(win=win, size=size/6, pos=[-shift,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
 
 fixPhase = [bigCircle,rect_horiz,rect_vert,smallCircle]
 

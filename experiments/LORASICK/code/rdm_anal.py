@@ -13,7 +13,7 @@ def runAnal(dat_file):
     ###    PREPROC   ####
     #####################
     allDat = allDat.dropna(subset=['resp_key'])
-    allDat['direction']=[-1 if c else 1 for c in allDat.cur_dir]   
+    allDat['direction'] = allDat.cur_dir.replace({180:-1,0:1})
     allDat['cur_coherence'] = allDat['cur_coherence']*100
     allDat['dirCoh']  = allDat['direction'] * allDat['cur_coherence']
     allDat['resp_time'] *= 1000
@@ -21,7 +21,7 @@ def runAnal(dat_file):
 
     key1,key2 = sorted(allDat.resp_key.unique())
     allDat['response'] = allDat.resp_key.replace({key2:1,key1:0})
-    
+
     #####################
     ###   AGGREGATE  ####
     #####################

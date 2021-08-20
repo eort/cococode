@@ -186,31 +186,32 @@ select_frames_seq = (select_seq*win_info['framerate']).round().astype(int)
 ##################################
 ###      MAKE STIMULI          ###
 ##################################
+shift=win_info['shift']
 #create a window
 mon = monitors.Monitor('cocoLab',width = win_info['screen_width'],distance = win_info['screen_distance'])
 mon.setSizePix(win_info['win_size'])
 win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=win_info['fullscr'],units="deg",autoLog=0,monitor=mon)
 
 # and text stuff
-startExp = visual.TextStim(win,text='Willkommen zur Lernaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.6,autoLog=0)
-startBlock = visual.TextStim(win,text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.6,autoLog=0)
-endBlock = visual.TextStim(win,text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.6)
-endExp = visual.TextStim(win,text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.6)
-warning = visual.TextStim(win,text=stim_info["warning"],color='white',autoLog=0,height=0.6)
-timeout_screen = visual.TextStim(win,text='Zu langsam!',color='white',height=0.6,autoLog=0)
+startExp = visual.TextStim(win,pos=[-shift, 0], text='Willkommen zur Lernaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.6,autoLog=0)
+startBlock = visual.TextStim(win,pos=[-shift, 0], text=stim_info['startBlock_text'],color=win_info['fg_color'],height=0.6,autoLog=0)
+endBlock = visual.TextStim(win, pos=[-shift, 0], text=stim_info['endBlock_text'],color=win_info['fg_color'],autoLog=0,height=0.6)
+endExp = visual.TextStim(win, pos=[-shift, 0], text=stim_info['endExp_text'],color=win_info['fg_color'],autoLog=0,height=0.6)
+warning = visual.TextStim(win,pos=[-shift, 0],  text=stim_info["warning"],color='white',autoLog=0,height=0.6)
+timeout_screen = visual.TextStim(win, pos=[-shift, 0], text='Zu langsam!',color='white',height=0.6,autoLog=0)
 # and stimuli
-progress_bar =visual.Rect(win,height=bar['height'],width=bar['width'],lineColor=None,fillColor=bar['color'],pos=[-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
-progress_update =visual.Rect(win,height=bar['height'],width=0,lineColor=None,fillColor=bar['color'],autoLog=0,pos=(-bar['horiz_dist'],-bar['vert_dist']))
-progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
-progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist'],-bar['vert_dist']],autoLog=0)
+progress_bar =visual.Rect(win,height=bar['height'],width=bar['width'],lineColor=None,fillColor=bar['color'],pos=[-bar['horiz_dist']-shift,-bar['vert_dist']],autoLog=0)
+progress_update =visual.Rect(win,height=bar['height'],width=0,lineColor=None,fillColor=bar['color'],autoLog=0,pos=(-bar['horiz_dist']-shift,-bar['vert_dist']))
+progress_bar_start=visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [-bar['horiz_dist']-shift,-bar['vert_dist']],autoLog=0)
+progress_bar_end =visual.Rect(win,width=bar['width'],height=bar['height'],lineColor=None,fillColor=bar['color'],pos = [bar['horiz_dist']-shift,-bar['vert_dist']],autoLog=0)
 fixDot = et.fancyFixDot(win, bg_color = win_info['bg_color'],size=0.4) 
-leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],fillColor=None,pos=[-stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
-rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],fillColor=None,pos=[stim_info['bar_x'],stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
+leftframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],fillColor=None,pos=[-stim_info['bar_x']-shift,stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
+rightframe = visual.Rect(win,width=stim_info['bar_width'],height=stim_info['bar_height'],fillColor=None,pos=[stim_info['bar_x']-shift,stim_info['bar_y']],lineWidth=stim_info['line_width'],autoLog=0)
 leftbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=None,autoLog=0)
 rightbar = visual.Rect(win,width=stim_info['bar_width'],lineColor=None,autoLog=0)
 selectbar = visual.Rect(win,width=stim_info['bar_width']*1.7,height=stim_info['bar_height']*1.4,lineColor=win_info['fg_color'],fillColor=None,lineWidth=stim_info['line_width'],autoLog=0)
-smiley = visual.ImageStim(win,'code/smiley.png',contrast=-1,size=[1.1*stim_info['bar_width'],1.1*stim_info['bar_width']],autoLog=0)
-frowny = visual.ImageStim(win,'code/frowny.png',contrast=-1,size=[1.1*stim_info['bar_width'],1.1*stim_info['bar_width']],autoLog=0)
+smiley = visual.ImageStim(win,'code/smiley.png',pos=[-shift, 0] , contrast=-1,size=[1.1*stim_info['bar_width'],1.1*stim_info['bar_width']],autoLog=0)
+frowny = visual.ImageStim(win,'code/frowny.png',pos=[-shift, 0] , contrast=-1,size=[1.1*stim_info['bar_width'],1.1*stim_info['bar_width']],autoLog=0)
 
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
@@ -357,9 +358,9 @@ for trial_no in range(trial_seq.shape[0]):
     rightframe.lineColor = rightcolor
     leftbar.fillColor = leftColor
     leftframe.lineColor = leftColor 
-    leftbar.pos=[-stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
+    leftbar.pos=[-stim_info['bar_x']-shift,stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_left']]
     leftbar.height=0.1*stim_info['bar_height']*trial_info['mag_left']
-    rightbar.pos=[stim_info['bar_x'],stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
+    rightbar.pos=[stim_info['bar_x']-shift,stim_info['bar_y']-0.5*stim_info['bar_height']+0.05*stim_info['bar_height']*trial_info['mag_right']]
     rightbar.height=0.1*stim_info['bar_height']* trial_info['mag_right']
 
     # check whether a button in the response box is currently pressed & present a warning if so
@@ -424,9 +425,9 @@ for trial_no in range(trial_seq.shape[0]):
 
     # set the location of selection box
     if trial_info['resp_key'] == resp_keys[0]:
-        selectbar.pos = [-stim_info['bar_x'],stim_info['bar_y']]
+        selectbar.pos = [-stim_info['bar_x']-shift,stim_info['bar_y']]
     elif trial_info['resp_key'] == resp_keys[1]:
-        selectbar.pos = [stim_info['bar_x'],stim_info['bar_y']]
+        selectbar.pos = [stim_info['bar_x']-shift,stim_info['bar_y']]
     
     ##########################
     ###  SELECTION PHASE   ###
@@ -468,10 +469,13 @@ for trial_no in range(trial_seq.shape[0]):
         progress_bar.pos[0]+=progress_update.width/2
         if progress_bar.width > 2*bar['horiz_dist']:
             progress_bar.width=0
-            progress_bar.pos[0] = -bar['horiz_dist']  
+            progress_bar.pos[0] = -bar['horiz_dist']-shift  
             progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2
+            progress_update.width = 0 
             total_points+=200          
     else:
+        progress_update.width = 0 
+        progress_update.pos[0] = progress_bar.pos[0]+progress_bar.width/2
         feedback = frowny
 
     # show it

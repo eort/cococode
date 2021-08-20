@@ -115,16 +115,17 @@ win=visual.Window(size=win_info['win_size'],color=win_info['bg_color'],fullscr=w
 # set Mouse to be invisible
 event.Mouse(win=None,visible=False)
 event.clearEvents()
+shift=win_info['shift']
 # first all kind of structural messages
-startExp = visual.TextStim(win,text='Willkommen zur Weltallaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.6,autoLog=0)
-startBlock = visual.TextStim(win,text=stim_info["blockStart"],color=win_info['fg_color'],height=0.6,autoLog=0)
-endBlock = visual.TextStim(win,text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.6,autoLog=0)
-endExp = visual.TextStim(win,text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.6,autoLog=0)
-warning = visual.TextStim(win,text=stim_info["warning"],color=win_info['fg_color'],height=0.6,autoLog=0)
-feedback = visual.TextStim(win,text='',color=win_info['fg_color'],height=0.6,autoLog=0)
+startExp = visual.TextStim(win,pos=[-shift, 0], text='Willkommen zur Weltallaufgabe!\nGleich geht es los.',color=win_info['fg_color'],height=0.6,autoLog=0)
+startBlock = visual.TextStim(win,pos=[-shift, 0],text=stim_info["blockStart"],color=win_info['fg_color'],height=0.6,autoLog=0)
+endBlock = visual.TextStim(win,pos=[-shift, 0],text=stim_info["blockEnd"],color=win_info['fg_color'],height=0.6,autoLog=0)
+endExp = visual.TextStim(win,pos=[-shift, 0],text=stim_info["exp_outro"],color=win_info['fg_color'],height=0.6,autoLog=0)
+warning = visual.TextStim(win,pos=[-shift, 0],text=stim_info["warning"],color=win_info['fg_color'],height=0.6,autoLog=0)
+feedback = visual.TextStim(win,pos=[-shift, 0],text='',color=win_info['fg_color'],height=0.6,autoLog=0)
 fixDot = et.fancyFixDot(win,fg_color = win_info['fg_color'],bg_color = win_info['bg_color'],size=0.4) 
-cloud=visual.DotStim(win,color=win_info['fg_color'],fieldSize=rdk['cloud_size'],nDots=n_dots,dotLife=rdk['dotLife'],dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape='circle',coherence=0)
-middle = visual.Circle(win, size=rdk['annulus'], pos=[0,0],lineColor=None,fillColor=win_info['bg_color'],autoLog=0)
+cloud=visual.DotStim(win, fieldPos=[-shift, 0],color=win_info['fg_color'],fieldSize=rdk['cloud_size'],nDots=n_dots,dotLife=rdk['dotLife'],dotSize=rdk['size_dots'],speed=rdk['speed'],signalDots=rdk['signalDots'],noiseDots=rdk['noiseDots'],fieldShape='circle',coherence=0)
+middle = visual.Circle(win, size=rdk['annulus'], pos=[-shift,0],lineColor=None,fillColor=win_info['bg_color'],autoLog=0)
 # reset all triggers to zero
 et.sendTriggers(port,0)
 
@@ -150,9 +151,10 @@ for block_no in range(n_blocks):
     # create trial sequence
     trial_seq = np.tile(np.arange(n_cohs),int(n_trials/n_cohs))
     
-    # add zero-coherence trials and shuffle
+    # add zero-coherence trials
     trial_seq = np.concatenate((trial_seq,np.ones(param['n_zero'],dtype=int)*n_cohs)) 
     np.random.shuffle(trial_seq)
+
     # make sure every coherence lvl is matched with both directions equal number of times
     dir_list = [-1,1]*int(n_trials/2/n_cohs)
     dir_dict = {}
@@ -228,13 +230,11 @@ for block_no in range(n_blocks):
         ##########################   
         t0 = core.getTime()
         # make sure the response of the previous trial has stopped
-        while captureResponse(port,keys=resp_keys+[None]) in resp_keys:
-            et.drawFlip(win,fixDot)  
+        while captureResponse(port,keys=resp_keys+[None]) in resp_keys:  
             if core.getTime()-t0>1.0: 
                 et.drawFlip(win,[warning])  
-        
-        # wait a curtesy flips before continuing
-        et.drawFlip(win,fixDot)
+        et.drawFlip(win, fixDot)
+
         # start trial and draw fixation and wait for 
         win.logOnFlip(level=logging.INFO, msg='start_fix\t{}\t{}'.format(trial_count,timing_info['fix_dur']+0.008))
         win.callOnFlip(et.sendTriggers,port,trigger_info['start_fix'])  

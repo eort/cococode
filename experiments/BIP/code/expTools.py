@@ -55,10 +55,11 @@ def fancyFixDot(window,bg_color,fg_color='white',size=0.4):
     drawing in degrees
     """
     # define two circles and a cross
-    bigCircle = visual.Circle(win=window, size=size, pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
-    rect_horiz = visual.Rect(win=window,width=size,height=size/6,fillColor=bg_color,lineColor=bg_color,autoLog=0)
-    rect_vert = visual.Rect(win=window,width=size/6,height=size,fillColor=bg_color,lineColor=bg_color,autoLog=0)
-    smallCircle = visual.Circle(win=window, size=size/6, pos=[0,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
+    shift = 1.4
+    bigCircle = visual.Circle(win=window, size=size, pos=[-shift,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
+    rect_horiz = visual.Rect(win=window,width=size,pos=[-shift,0], height=size/6,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+    rect_vert = visual.Rect(win=window,width=size/6,pos=[-shift,0], height=size,fillColor=bg_color,lineColor=bg_color,autoLog=0)
+    smallCircle = visual.Circle(win=window, size=size/6, pos=[-shift,0],lineColor=fg_color,fillColor=fg_color,autoLog=0)
     return [bigCircle,rect_horiz,rect_vert,smallCircle]
 
 def finishExperiment(window,dataLogger,sort='lazy',show_results=False):
